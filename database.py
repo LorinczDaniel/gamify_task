@@ -1,6 +1,6 @@
 import sqlite3
-import json
-from datetime import datetime
+import random
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 
 DATABASE_NAME = 'quest_master.db'
@@ -16,10 +16,21 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
     
-    # Character table
+    # Users table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Character table (linked to user)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS character (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER UNIQUE NOT NULL,
             name TEXT NOT NULL,
             level INTEGER DEFAULT 1,
             xp INTEGER DEFAULT 0,
@@ -28,14 +39,18 @@ def init_db():
             max_health INTEGER DEFAULT 100,
             attack INTEGER DEFAULT 10,
             defense INTEGER DEFAULT 5,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            combo_count INTEGER DEFAULT 0,
+            last_quest_completed TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES user(id)
         )
     ''')
     
-    # Quests/Tasks table
+    # Quests/Tasks table (linked to user)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS quest (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
             title TEXT NOT NULL,
             description TEXT,
             difficulty TEXT DEFAULT 'medium',
@@ -43,7 +58,8 @@ def init_db():
             gold_reward INTEGER NOT NULL,
             completed BOOLEAN DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            completed_at TIMESTAMP
+            completed_at TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES user(id)
         )
     ''')
     
@@ -103,6 +119,19 @@ def init_db():
         )
     ''')
     
+    # Task templates for quick-add
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS task_template (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            description TEXT,
+            difficulty TEXT DEFAULT 'medium',
+            icon TEXT,
+            category TEXT,
+            popular BOOLEAN DEFAULT 0
+        )
+    ''')
+    
     conn.commit()
     
     # Populate initial items if shop is empty
@@ -115,7 +144,69 @@ def init_db():
     if cursor.fetchone()[0] == 0:
         populate_initial_achievements(conn)
     
+    # Populate task templates if empty
+    cursor.execute('SELECT COUNT(*) FROM task_template')
+    if cursor.fetchone()[0] == 0:
+        populate_task_templates(conn)
+    
+    # Add new columns to existing character table if they don't exist
+    try:
+        cursor.execute('ALTER TABLE character ADD COLUMN combo_count INTEGER DEFAULT 0')
+        cursor.execute('ALTER TABLE character ADD COLUMN last_quest_completed TIMESTAMP')
+        conn.commit()
+    except sqlite3.OperationalError:
+        # Columns already exist
+        pass
+    
+    # Try to add user_id column to existing character table
+    try:
+        cursor.execute('ALTER TABLE character ADD COLUMN user_id INTEGER')
+        conn.commit()
+    except sqlite3.OperationalError:
+        # Column already exists
+        pass
+    
+    # Try to add user_id column to existing quest table
+    try:
+        cursor.execute('ALTER TABLE quest ADD COLUMN user_id INTEGER')
+        conn.commit()
+    except sqlite3.OperationalError:
+        # Column already exists
+        pass
+    
+    # Create default demo user if no users exist
+    cursor.execute('SELECT COUNT(*) FROM user')
+    if cursor.fetchone()[0] == 0:
+        create_demo_user(conn)
+    
     conn.close()
+
+def create_demo_user(conn):
+    """Create a default demo user for easy testing"""
+    from werkzeug.security import generate_password_hash
+    
+    cursor = conn.cursor()
+    
+    # Create demo user: username "user", password "user"
+    password_hash = generate_password_hash("user")
+    cursor.execute('''
+        INSERT INTO user (username, password_hash)
+        VALUES (?, ?)
+    ''', ("user", password_hash))
+    
+    user_id = cursor.lastrowid
+    
+    # Create character for demo user
+    cursor.execute('''
+        INSERT INTO character (user_id, name, level, xp, gold)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (user_id, "Hero", 1, 0, 0))
+    
+    conn.commit()
+    
+    print("✨ Demo account created!")
+    print("   Username: user")
+    print("   Password: user")
 
 def populate_initial_items(conn):
     """Add initial shop items"""
@@ -165,6 +256,57 @@ def populate_initial_achievements(conn):
         INSERT INTO achievement (name, description, icon, requirement_type, requirement_value)
         VALUES (?, ?, ?, ?, ?)
     ''', achievements)
+    conn.commit()
+
+def populate_task_templates(conn):
+    """Add common task templates for quick-add"""
+    templates = [
+        # Household Chores
+        ('Do the dishes', 'Wash and put away all dishes', 'easy', '🍽️', 'household', 1),
+        ('Laundry', 'Wash, dry, and fold laundry', 'medium', '👕', 'household', 1),
+        ('Clean room', 'Tidy up and organize bedroom', 'medium', '🧹', 'household', 1),
+        ('Vacuum house', 'Vacuum all carpets and floors', 'medium', '🏠', 'household', 1),
+        ('Take out trash', 'Empty all trash bins', 'easy', '🗑️', 'household', 1),
+        ('Make bed', 'Make your bed neatly', 'easy', '🛏️', 'household', 1),
+        ('Cook meal', 'Prepare a home-cooked meal', 'medium', '🍳', 'household', 1),
+        ('Grocery shopping', 'Buy groceries for the week', 'medium', '🛒', 'household', 1),
+        
+        # Work/Study
+        ('Study for 1 hour', 'Focused study session', 'hard', '📚', 'work', 1),
+        ('Study for 30 min', 'Quick study session', 'medium', '📖', 'work', 1),
+        ('Finish homework', 'Complete all pending homework', 'hard', '✏️', 'work', 1),
+        ('Read 20 pages', 'Read educational material', 'medium', '📕', 'work', 1),
+        ('Work on project', 'Make progress on main project', 'hard', '💼', 'work', 1),
+        ('Answer emails', 'Clear email inbox', 'easy', '📧', 'work', 1),
+        ('Attend meeting', 'Participate in scheduled meeting', 'medium', '👥', 'work', 1),
+        
+        # Health/Fitness
+        ('Exercise 30 min', 'Workout or cardio session', 'hard', '💪', 'health', 1),
+        ('Go for a walk', 'Take a 20-minute walk', 'easy', '🚶', 'health', 1),
+        ('Drink 8 glasses water', 'Stay hydrated throughout day', 'easy', '💧', 'health', 1),
+        ('Meditate 10 min', 'Mindfulness meditation', 'medium', '🧘', 'health', 1),
+        ('Prepare healthy meal', 'Cook a nutritious meal', 'medium', '🥗', 'health', 1),
+        
+        # Self-care
+        ('Shower/bath', 'Take a refreshing shower', 'easy', '🚿', 'self-care', 0),
+        ('Brush teeth', 'Morning and evening dental care', 'easy', '🦷', 'self-care', 0),
+        ('Skincare routine', 'Complete skincare regimen', 'easy', '✨', 'self-care', 0),
+        ('Get 8 hours sleep', 'Maintain healthy sleep schedule', 'medium', '😴', 'self-care', 1),
+        
+        # Social
+        ('Call family/friend', 'Catch up with loved ones', 'easy', '📞', 'social', 0),
+        ('Plan social activity', 'Organize time with friends', 'medium', '🎉', 'social', 0),
+        
+        # Financial
+        ('Pay bills', 'Handle monthly bill payments', 'easy', '💳', 'financial', 0),
+        ('Budget review', 'Review spending and budget', 'medium', '💰', 'financial', 0),
+    ]
+    
+    cursor = conn.cursor()
+    cursor.executemany('''
+        INSERT INTO task_template (title, description, difficulty, icon, category, popular)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', templates)
     conn.commit()
 
 def calculate_xp_for_next_level(level: int) -> int:
@@ -272,7 +414,7 @@ def add_xp_and_gold(character_id: int, xp: int, gold: int) -> Dict[str, Any]:
     return update_character(character_id, xp=new_xp, gold=new_gold)
 
 # Quest operations
-def create_quest(title: str, description: str = "", difficulty: str = "medium") -> Dict[str, Any]:
+def create_quest(user_id: int, title: str, description: str = "", difficulty: str = "medium") -> Dict[str, Any]:
     """Create a new quest"""
     xp_reward, gold_reward = calculate_quest_rewards(difficulty)
     
@@ -280,9 +422,9 @@ def create_quest(title: str, description: str = "", difficulty: str = "medium") 
     cursor = conn.cursor()
     
     cursor.execute('''
-        INSERT INTO quest (title, description, difficulty, xp_reward, gold_reward)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (title, description, difficulty, xp_reward, gold_reward))
+        INSERT INTO quest (user_id, title, description, difficulty, xp_reward, gold_reward)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (user_id, title, description, difficulty, xp_reward, gold_reward))
     
     conn.commit()
     quest_id = cursor.lastrowid
@@ -301,15 +443,15 @@ def get_quest(quest_id: int) -> Optional[Dict[str, Any]]:
     
     return dict(row) if row else None
 
-def get_all_quests(completed: Optional[bool] = None) -> List[Dict[str, Any]]:
-    """Get all quests, optionally filtered by completion status"""
+def get_all_quests(user_id: int, completed: Optional[bool] = None) -> List[Dict[str, Any]]:
+    """Get all quests for a user, optionally filtered by completion status"""
     conn = get_db()
     cursor = conn.cursor()
     
     if completed is None:
-        cursor.execute('SELECT * FROM quest ORDER BY created_at DESC')
+        cursor.execute('SELECT * FROM quest WHERE user_id = ? ORDER BY created_at DESC', (user_id,))
     else:
-        cursor.execute('SELECT * FROM quest WHERE completed = ? ORDER BY created_at DESC', (completed,))
+        cursor.execute('SELECT * FROM quest WHERE user_id = ? AND completed = ? ORDER BY created_at DESC', (user_id, completed))
     
     rows = cursor.fetchall()
     conn.close()
@@ -317,10 +459,58 @@ def get_all_quests(completed: Optional[bool] = None) -> List[Dict[str, Any]]:
     return [dict(row) for row in rows]
 
 def complete_quest(quest_id: int, character_id: int = 1) -> Dict[str, Any]:
-    """Mark quest as completed and reward character"""
+    """Mark quest as completed and reward character with enhanced rewards"""
     quest = get_quest(quest_id)
     if not quest or quest['completed']:
         return None
+    
+    char = get_character(character_id)
+    
+    # Check for combo (completed quest within last 10 minutes)
+    combo_count = 0
+    combo_multiplier = 1.0
+    is_combo = False
+    
+    if char.get('last_quest_completed'):
+        try:
+            last_completed = datetime.fromisoformat(char['last_quest_completed'])
+            time_since_last = datetime.now() - last_completed
+            
+            # If within 10 minutes, increment combo
+            if time_since_last < timedelta(minutes=10):
+                combo_count = char.get('combo_count', 0) + 1
+                is_combo = True
+                # Combo multiplier: +10% per combo, max 200% (10 combos)
+                combo_multiplier = min(1.0 + (combo_count * 0.1), 2.0)
+            else:
+                combo_count = 1  # Reset combo
+                combo_multiplier = 1.0
+        except (ValueError, TypeError):
+            combo_count = 1
+    else:
+        combo_count = 1
+    
+    # Critical hit chance: 15% base + 1% per level
+    crit_chance = min(0.15 + (char['level'] * 0.01), 0.5)  # Max 50%
+    is_critical = random.random() < crit_chance
+    crit_multiplier = 2.5 if is_critical else 1.0
+    
+    # Calculate total rewards with multipliers
+    base_xp = quest['xp_reward']
+    base_gold = quest['gold_reward']
+    
+    total_multiplier = combo_multiplier * crit_multiplier
+    
+    final_xp = int(base_xp * total_multiplier)
+    final_gold = int(base_gold * total_multiplier)
+    
+    # Rare item drop chance on epic quests or critical hits
+    rare_drop = None
+    if (quest['difficulty'] == 'epic' or is_critical) and random.random() < 0.15:
+        # 15% chance for bonus gold
+        bonus_gold = random.randint(20, 100)
+        final_gold += bonus_gold
+        rare_drop = {'type': 'gold', 'amount': bonus_gold}
     
     # Mark quest as completed
     conn = get_db()
@@ -329,18 +519,36 @@ def complete_quest(quest_id: int, character_id: int = 1) -> Dict[str, Any]:
         UPDATE quest SET completed = 1, completed_at = CURRENT_TIMESTAMP
         WHERE id = ?
     ''', (quest_id,))
+    
+    # Update character combo info
+    cursor.execute('''
+        UPDATE character SET combo_count = ?, last_quest_completed = CURRENT_TIMESTAMP
+        WHERE id = ?
+    ''', (combo_count, character_id))
+    
     conn.commit()
     conn.close()
     
     # Reward character
-    char = add_xp_and_gold(character_id, quest['xp_reward'], quest['gold_reward'])
+    char = add_xp_and_gold(character_id, final_xp, final_gold)
     
     return {
         'quest': get_quest(quest_id),
         'character': char,
         'rewards': {
-            'xp': quest['xp_reward'],
-            'gold': quest['gold_reward']
+            'xp': final_xp,
+            'gold': final_gold,
+            'base_xp': base_xp,
+            'base_gold': base_gold
+        },
+        'bonus': {
+            'is_critical': is_critical,
+            'crit_multiplier': crit_multiplier if is_critical else None,
+            'is_combo': is_combo,
+            'combo_count': combo_count if is_combo else None,
+            'combo_multiplier': combo_multiplier if is_combo else None,
+            'total_multiplier': total_multiplier,
+            'rare_drop': rare_drop
         }
     }
 
@@ -580,8 +788,17 @@ def check_and_unlock_achievements(character_id: int) -> List[Dict[str, Any]]:
     conn = get_db()
     cursor = conn.cursor()
     
-    # Get stats
-    cursor.execute('SELECT COUNT(*) as count FROM quest WHERE completed = 1')
+    # Get user_id from character
+    cursor.execute('SELECT user_id FROM character WHERE id = ?', (character_id,))
+    char_row = cursor.fetchone()
+    if not char_row:
+        conn.close()
+        return []
+    
+    user_id = char_row['user_id']
+    
+    # Get stats (filtered by user)
+    cursor.execute('SELECT COUNT(*) as count FROM quest WHERE user_id = ? AND completed = 1', (user_id,))
     quests_completed = cursor.fetchone()['count']
     
     cursor.execute('SELECT COUNT(*) as count FROM battle WHERE character_id = ? AND won = 1', (character_id,))
@@ -590,7 +807,7 @@ def check_and_unlock_achievements(character_id: int) -> List[Dict[str, Any]]:
     cursor.execute('SELECT COUNT(*) as count FROM inventory WHERE character_id = ?', (character_id,))
     items_purchased = cursor.fetchone()['count']
     
-    cursor.execute('SELECT SUM(gold_reward) as total FROM quest WHERE completed = 1')
+    cursor.execute('SELECT SUM(gold_reward) as total FROM quest WHERE user_id = ? AND completed = 1', (user_id,))
     gold_earned = cursor.fetchone()['total'] or 0
     
     stats = {
@@ -625,14 +842,23 @@ def check_and_unlock_achievements(character_id: int) -> List[Dict[str, Any]]:
 
 # Statistics
 def get_statistics(character_id: int) -> Dict[str, Any]:
-    """Get comprehensive statistics"""
+    """Get comprehensive statistics for a character"""
     conn = get_db()
     cursor = conn.cursor()
     
-    cursor.execute('SELECT COUNT(*) as count FROM quest WHERE completed = 1')
+    # Get user_id from character
+    cursor.execute('SELECT user_id FROM character WHERE id = ?', (character_id,))
+    char_row = cursor.fetchone()
+    if not char_row:
+        conn.close()
+        return {}
+    
+    user_id = char_row['user_id']
+    
+    cursor.execute('SELECT COUNT(*) as count FROM quest WHERE user_id = ? AND completed = 1', (user_id,))
     quests_completed = cursor.fetchone()['count']
     
-    cursor.execute('SELECT COUNT(*) as count FROM quest WHERE completed = 0')
+    cursor.execute('SELECT COUNT(*) as count FROM quest WHERE user_id = ? AND completed = 0', (user_id,))
     quests_pending = cursor.fetchone()['count']
     
     cursor.execute('SELECT COUNT(*) as count FROM battle WHERE character_id = ? AND won = 1', (character_id,))
@@ -647,10 +873,10 @@ def get_statistics(character_id: int) -> Dict[str, Any]:
     cursor.execute('SELECT COUNT(*) as count FROM achievement')
     total_achievements = cursor.fetchone()['count']
     
-    cursor.execute('SELECT SUM(gold_reward) as total FROM quest WHERE completed = 1')
+    cursor.execute('SELECT SUM(gold_reward) as total FROM quest WHERE user_id = ? AND completed = 1', (user_id,))
     total_gold_earned = cursor.fetchone()['total'] or 0
     
-    cursor.execute('SELECT SUM(xp_reward) as total FROM quest WHERE completed = 1')
+    cursor.execute('SELECT SUM(xp_reward) as total FROM quest WHERE user_id = ? AND completed = 1', (user_id,))
     total_xp_earned = cursor.fetchone()['total'] or 0
     
     conn.close()
@@ -666,3 +892,128 @@ def get_statistics(character_id: int) -> Dict[str, Any]:
         'total_xp_earned': total_xp_earned
     }
 
+# Task Templates
+def get_all_templates(category: Optional[str] = None, popular_only: bool = False) -> List[Dict[str, Any]]:
+    """Get all task templates, optionally filtered"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    if category:
+        cursor.execute('SELECT * FROM task_template WHERE category = ? ORDER BY popular DESC, title ASC', (category,))
+    elif popular_only:
+        cursor.execute('SELECT * FROM task_template WHERE popular = 1 ORDER BY title ASC')
+    else:
+        cursor.execute('SELECT * FROM task_template ORDER BY category ASC, popular DESC, title ASC')
+    
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def get_template_categories() -> List[str]:
+    """Get all unique template categories"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT DISTINCT category FROM task_template ORDER BY category ASC')
+    rows = cursor.fetchall()
+    conn.close()
+    return [row['category'] for row in rows]
+
+def create_quest_from_template(template_id: int, user_id: int) -> Dict[str, Any]:
+    """Create a quest from a template"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM task_template WHERE id = ?', (template_id,))
+    template = cursor.fetchone()
+    conn.close()
+    
+    if not template:
+        return None
+    
+    template = dict(template)
+    return create_quest(
+        user_id=user_id,
+        title=template['title'],
+        description=template['description'] or '',
+        difficulty=template['difficulty']
+    )
+
+# User Authentication
+def create_user(username: str, password: str) -> Optional[Dict[str, Any]]:
+    """Create a new user with hashed password"""
+    from werkzeug.security import generate_password_hash
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        password_hash = generate_password_hash(password)
+        cursor.execute('''
+            INSERT INTO user (username, password_hash)
+            VALUES (?, ?)
+        ''', (username, password_hash))
+        conn.commit()
+        user_id = cursor.lastrowid
+        conn.close()
+        
+        return get_user(user_id)
+    except sqlite3.IntegrityError:
+        conn.close()
+        return None  # Username already exists
+
+def get_user(user_id: int) -> Optional[Dict[str, Any]]:
+    """Get user by ID"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, username, created_at FROM user WHERE id = ?', (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
+    """Get user by username (including password hash for auth)"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM user WHERE username = ?', (username,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def verify_password(username: str, password: str) -> Optional[int]:
+    """Verify password and return user_id if correct"""
+    from werkzeug.security import check_password_hash
+    
+    user = get_user_by_username(username)
+    if not user:
+        return None
+    
+    if check_password_hash(user['password_hash'], password):
+        return user['id']
+    return None
+
+def get_character_by_user_id(user_id: int) -> Optional[Dict[str, Any]]:
+    """Get character for a specific user"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM character WHERE user_id = ?', (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        char = dict(row)
+        char['xp_to_next_level'] = calculate_xp_for_next_level(char['level'])
+        return char
+    return None
+
+def create_character_for_user(user_id: int, name: str) -> Dict[str, Any]:
+    """Create a character for a user"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        INSERT INTO character (user_id, name) VALUES (?, ?)
+    ''', (user_id, name))
+    
+    conn.commit()
+    conn.close()
+    
+    return get_character_by_user_id(user_id)

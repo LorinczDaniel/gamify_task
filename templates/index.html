@@ -10,7 +10,15 @@
     <div class="game-container">
         <!-- Header -->
         <header class="header">
-            <h1 class="game-title">⚔️ Quest Master</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="flex: 1;"></div>
+                <h1 class="game-title" style="margin-bottom: 0;">⚔️ Quest Master</h1>
+                <div style="flex: 1; text-align: right;">
+                    <button id="logout-btn" class="btn btn-small btn-secondary" style="padding: 8px 16px; font-size: 0.9rem;">
+                        🚪 Logout
+                    </button>
+                </div>
+            </div>
             <p class="subtitle">Turn Your Tasks Into Epic Quests</p>
         </header>
 
@@ -74,6 +82,17 @@
         <main class="tab-content">
             <!-- Quests Tab -->
             <section id="quests-tab" class="tab-pane active">
+                <!-- Quick Add Templates Section -->
+                <div class="quick-add-section">
+                    <h3>⚡ Quick Add Common Tasks</h3>
+                    <div class="category-tabs" id="category-tabs">
+                        <!-- Category tabs will be loaded here -->
+                    </div>
+                    <div class="template-grid" id="template-grid">
+                        <!-- Templates will be loaded here -->
+                    </div>
+                </div>
+
                 <div class="section-header">
                     <h2>Active Quests</h2>
                     <button class="btn btn-primary" id="new-quest-btn">+ New Quest</button>
@@ -198,6 +217,75 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Combo Badge -->
+    <div id="combo-badge" class="combo-badge" style="display: none;">
+        <span class="combo-number" id="combo-number">0</span>
+        <span class="combo-text">Combo!</span>
+    </div>
+
+    <!-- Reward Popup -->
+    <div id="reward-popup" class="reward-popup" style="display: none;">
+        <div class="reward-content" id="reward-content">
+            <!-- Reward details will be inserted here -->
+        </div>
+    </div>
+
+    <!-- Level Up Overlay -->
+    <div id="level-up-overlay" class="level-up-overlay" style="display: none;">
+        <div class="level-up-content" id="level-up-content">
+            <!-- Level up details will be inserted here -->
+        </div>
+    </div>
+
+    <!-- Battle Arena -->
+    <div id="battle-arena" class="battle-arena" style="display: none;">
+        <div class="battle-header">
+            <h1>⚔️ BATTLE! ⚔️</h1>
+        </div>
+        
+        <div class="battle-field">
+            <!-- Hero Side -->
+            <div class="combatant hero">
+                <div class="combatant-sprite" id="hero-sprite">🦸</div>
+                <div class="combatant-info">
+                    <div class="combatant-name" id="hero-name">Hero</div>
+                    <div class="combatant-stats">
+                        <span>⚔️ <span id="hero-attack">10</span></span>
+                        <span>🛡️ <span id="hero-defense">5</span></span>
+                    </div>
+                    <div class="health-bar-container">
+                        <div class="health-bar">
+                            <div class="health-bar-fill" id="hero-health-bar" style="width: 100%"></div>
+                            <div class="health-text" id="hero-health-text">100/100</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Monster Side -->
+            <div class="combatant monster">
+                <div class="combatant-sprite" id="monster-sprite">👹</div>
+                <div class="combatant-info">
+                    <div class="combatant-name" id="monster-name">Monster</div>
+                    <div class="combatant-stats">
+                        <span>⚔️ <span id="monster-attack">8</span></span>
+                        <span>🛡️ <span id="monster-defense">4</span></span>
+                    </div>
+                    <div class="health-bar-container">
+                        <div class="health-bar">
+                            <div class="health-bar-fill" id="monster-health-bar" style="width: 100%"></div>
+                            <div class="health-text" id="monster-health-text">80/80</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="battle-log" id="battle-log">
+            <!-- Battle log entries will appear here -->
+        </div>
     </div>
 
     <!-- Notification Container -->

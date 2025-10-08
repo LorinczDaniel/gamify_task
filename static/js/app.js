@@ -6,6 +6,8 @@ const API_BASE = '/api';
 let currentCharacter = null;
 let currentTab = 'quests';
 let questFilter = 'active';
+let currentTemplateCategory = 'all';
+let previousLevel = 0;
 
 // Initialize app on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Initialize application
 async function initializeApp() {
     await loadCharacter();
+    await loadTemplates();
     await loadQuests();
     await loadShopItems();
     await loadInventory();
@@ -58,6 +61,9 @@ function setupEventListeners() {
 
     // Achievement modal
     document.getElementById('achievement-modal-close').addEventListener('click', closeAchievementModal);
+    
+    // Logout button
+    document.getElementById('logout-btn').addEventListener('click', logout);
 }
 
 // Tab switching
@@ -90,6 +96,12 @@ function switchTab(tabName) {
 async function loadCharacter() {
     try {
         const response = await fetch(`${API_BASE}/character`);
+        
+        if (response.status === 401) {
+            window.location.href = '/login';
+            return;
+        }
+        
         currentCharacter = await response.json();
         updateCharacterUI();
     } catch (error) {
@@ -101,6 +113,12 @@ async function loadCharacter() {
 // Update character UI
 function updateCharacterUI() {
     if (!currentCharacter) return;
+
+    // Check for level up
+    if (previousLevel > 0 && currentCharacter.level > previousLevel) {
+        showLevelUpCelebration(previousLevel, currentCharacter.level);
+    }
+    previousLevel = currentCharacter.level;
 
     document.getElementById('character-name').textContent = currentCharacter.name;
     document.getElementById('character-level').textContent = currentCharacter.level;
@@ -119,6 +137,106 @@ function updateCharacterUI() {
     document.getElementById('xp-bar-fill').style.width = `${xpPercent}%`;
     document.getElementById('character-xp-text').textContent = 
         `${currentCharacter.xp}/${currentCharacter.xp_to_next_level}`;
+}
+
+// Template functions
+async function loadTemplates() {
+    try {
+        // Load categories
+        const categoryResponse = await fetch(`${API_BASE}/templates/categories`);
+        const categories = await categoryResponse.json();
+        
+        // Create category tabs
+        const categoryTabs = document.getElementById('category-tabs');
+        categoryTabs.innerHTML = `
+            <div class="category-tab active" data-category="all">⭐ Popular</div>
+            ${categories.map(cat => `
+                <div class="category-tab" data-category="${cat}">${getCategoryIcon(cat)} ${capitalizeFirst(cat)}</div>
+            `).join('')}
+        `;
+        
+        // Add category tab listeners
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                currentTemplateCategory = e.target.dataset.category;
+                document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                loadTemplatesByCategory();
+            });
+        });
+        
+        // Load popular templates initially
+        await loadTemplatesByCategory();
+    } catch (error) {
+        console.error('Error loading templates:', error);
+    }
+}
+
+async function loadTemplatesByCategory() {
+    try {
+        let url = `${API_BASE}/templates`;
+        if (currentTemplateCategory === 'all') {
+            url += '?popular=true';
+        } else {
+            url += `?category=${currentTemplateCategory}`;
+        }
+        
+        const response = await fetch(url);
+        const templates = await response.json();
+        
+        const templateGrid = document.getElementById('template-grid');
+        templateGrid.innerHTML = templates.map(template => `
+            <div class="template-btn" data-template-id="${template.id}">
+                <span class="template-icon">${template.icon}</span>
+                <div class="template-info">
+                    <div class="template-title">${template.title}</div>
+                    <div class="template-difficulty ${template.difficulty}">${template.difficulty}</div>
+                </div>
+            </div>
+        `).join('');
+        
+        // Add click listeners
+        document.querySelectorAll('.template-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const templateId = e.currentTarget.dataset.templateId;
+                createQuestFromTemplate(templateId);
+            });
+        });
+    } catch (error) {
+        console.error('Error loading templates:', error);
+    }
+}
+
+async function createQuestFromTemplate(templateId) {
+    try {
+        const response = await fetch(`${API_BASE}/templates/${templateId}/create`, {
+            method: 'POST',
+        });
+        
+        if (response.ok) {
+            showNotification('Quest added! Complete it to earn rewards! 🎯', 'success');
+            await loadQuests();
+        }
+    } catch (error) {
+        console.error('Error creating quest from template:', error);
+        showNotification('Failed to create quest', 'error');
+    }
+}
+
+function getCategoryIcon(category) {
+    const icons = {
+        'household': '🏠',
+        'work': '💼',
+        'health': '💪',
+        'self-care': '✨',
+        'social': '👥',
+        'financial': '💰'
+    };
+    return icons[category] || '📝';
+}
+
+function capitalizeFirst(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 // Quest functions
@@ -218,16 +336,20 @@ async function completeQuest(questId) {
 
         if (response.ok) {
             const result = await response.json();
-            showNotification(`Quest completed! +${result.rewards.xp} XP, +${result.rewards.gold} Gold`, 'success');
             
-            // Check for level up
-            if (result.character.level > currentCharacter.level) {
-                showNotification(`🎉 Level Up! You are now level ${result.character.level}!`, 'success');
+            // Show enhanced reward popup
+            showRewardPopup(result);
+            
+            // Show combo badge if applicable
+            if (result.bonus && result.bonus.is_combo) {
+                showComboBadge(result.bonus.combo_count);
             }
 
             // Show achievement unlocks
             if (result.newly_unlocked_achievements && result.newly_unlocked_achievements.length > 0) {
-                showAchievementUnlock(result.newly_unlocked_achievements);
+                setTimeout(() => {
+                    showAchievementUnlock(result.newly_unlocked_achievements);
+                }, 3000);
             }
 
             await loadCharacter();
@@ -390,6 +512,7 @@ async function equipItem(inventoryId) {
 // Battle functions
 async function battleMonster(monsterName, monsterLevel) {
     try {
+        // Make API call first to get battle result
         const response = await fetch(`${API_BASE}/battle`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -400,11 +523,15 @@ async function battleMonster(monsterName, monsterLevel) {
         });
 
         const result = await response.json();
-        showBattleResult(result);
+        
+        // Show animated battle
+        await showAnimatedBattle(result, monsterName, monsterLevel);
 
         // Show achievement unlocks
         if (result.newly_unlocked_achievements && result.newly_unlocked_achievements.length > 0) {
-            showAchievementUnlock(result.newly_unlocked_achievements);
+            setTimeout(() => {
+                showAchievementUnlock(result.newly_unlocked_achievements);
+            }, 1000);
         }
 
         await loadCharacter();
@@ -415,39 +542,225 @@ async function battleMonster(monsterName, monsterLevel) {
     }
 }
 
-function showBattleResult(result) {
-    const battleResult = document.getElementById('battle-result');
-    battleResult.classList.remove('hidden', 'victory', 'defeat');
-    battleResult.classList.add(result.won ? 'victory' : 'defeat');
+async function showAnimatedBattle(result, monsterName, monsterLevel) {
+    const arena = document.getElementById('battle-arena');
+    const battleLog = document.getElementById('battle-log');
+    
+    // Get monster emoji
+    const monsterEmojis = {
+        'Goblin': '👺',
+        'Orc': '👹',
+        'Troll': '🧌',
+        'Dragon': '🐉',
+        'Demon': '😈',
+        'Ancient Dragon': '🐲'
+    };
+    
+    // Set up battle field
+    document.getElementById('hero-name').textContent = currentCharacter.name;
+    document.getElementById('hero-attack').textContent = currentCharacter.attack;
+    document.getElementById('hero-defense').textContent = currentCharacter.defense;
+    document.getElementById('monster-name').textContent = monsterName;
+    document.getElementById('monster-attack').textContent = result.monster.attack;
+    document.getElementById('monster-defense').textContent = result.monster.defense;
+    document.getElementById('monster-sprite').textContent = monsterEmojis[monsterName] || '👹';
+    
+    // Calculate actual health values for animation
+    const heroMaxHP = currentCharacter.max_health;
+    const monsterMaxHP = result.monster.health;
+    let heroHP = heroMaxHP;
+    let monsterHP = monsterMaxHP;
+    
+    // Update health bars
+    updateBattleHealth('hero', heroHP, heroMaxHP);
+    updateBattleHealth('monster', monsterHP, monsterMaxHP);
+    
+    // Show arena
+    arena.style.display = 'flex';
+    battleLog.innerHTML = '';
+    
+    // Wait for entrance animation
+    await sleep(800);
+    
+    // Simulate turn-based combat
+    const heroSprite = document.getElementById('hero-sprite');
+    const monsterSprite = document.getElementById('monster-sprite');
+    
+    addBattleLog(`${currentCharacter.name} encounters ${monsterName}!`);
+    await sleep(1000);
+    
+    // Determine winner and simulate combat
+    const heroPower = currentCharacter.attack - result.monster.defense;
+    const monsterPower = result.monster.attack - currentCharacter.defense;
+    const heroDamage = Math.max(heroPower, 1);
+    const monsterDamage = Math.max(monsterPower, 1);
+    
+    // Combat rounds
+    let round = 1;
+    while (heroHP > 0 && monsterHP > 0 && round <= 5) {
+        // Hero attacks
+        addBattleLog(`${currentCharacter.name} attacks! 💥`);
+        heroSprite.classList.add('attacking');
+        await sleep(300);
+        
+        createSlashEffect(monsterSprite);
+        monsterSprite.classList.add('taking-damage');
+        monsterHP = Math.max(0, monsterHP - heroDamage * 15);
+        showDamageNumber(monsterSprite, heroDamage * 15, false);
+        updateBattleHealth('monster', monsterHP, monsterMaxHP);
+        
+        await sleep(600);
+        heroSprite.classList.remove('attacking');
+        monsterSprite.classList.remove('taking-damage');
+        
+        if (monsterHP <= 0) break;
+        
+        await sleep(500);
+        
+        // Monster attacks
+        addBattleLog(`${monsterName} counter-attacks! 🔥`);
+        monsterSprite.classList.add('attacking');
+        await sleep(300);
+        
+        createSlashEffect(heroSprite);
+        heroSprite.classList.add('taking-damage');
+        heroHP = Math.max(0, heroHP - monsterDamage * 8);
+        showDamageNumber(heroSprite, monsterDamage * 8, false);
+        updateBattleHealth('hero', heroHP, heroMaxHP);
+        
+        await sleep(600);
+        monsterSprite.classList.remove('attacking');
+        heroSprite.classList.remove('taking-damage');
+        
+        await sleep(800);
+        round++;
+    }
+    
+    // Determine actual result based on API response
+    await sleep(500);
+    
+    if (result.won) {
+        addBattleLog(`${currentCharacter.name} emerges victorious! 🎉`);
+        monsterSprite.style.opacity = '0.3';
+        createConfetti(20);
+    } else {
+        addBattleLog(`${monsterName} proves too powerful... 💀`);
+        heroSprite.style.opacity = '0.7';
+    }
+    
+    await sleep(1500);
+    
+    // Show result screen
+    showBattleResultScreen(result);
+}
 
-    battleResult.innerHTML = `
-        <h3>${result.won ? '🎉 Victory!' : '💀 Defeat!'}</h3>
-        <p style="font-size: 1.2rem; margin-bottom: 20px;">
-            You ${result.won ? 'defeated' : 'were defeated by'} 
-            ${result.monster.name} (Level ${result.monster.level})
-        </p>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
-            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
-                <div style="color: #94a3b8; margin-bottom: 5px;">Monster Stats</div>
-                <div>⚔️ ${result.monster.attack}</div>
-                <div>🛡️ ${result.monster.defense}</div>
-                <div>❤️ ${result.monster.health}</div>
-            </div>
-            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
-                <div style="color: #94a3b8; margin-bottom: 5px;">Rewards</div>
-                <div>✨ +${result.rewards.xp} XP</div>
-                <div>💰 +${result.rewards.gold} Gold</div>
-            </div>
-        </div>
-        <p style="color: #94a3b8; font-size: 0.9rem;">
+function updateBattleHealth(combatant, current, max) {
+    const healthBar = document.getElementById(`${combatant}-health-bar`);
+    const healthText = document.getElementById(`${combatant}-health-text`);
+    const percent = (current / max) * 100;
+    
+    healthBar.style.width = percent + '%';
+    healthText.textContent = `${Math.round(current)}/${max}`;
+    
+    if (percent <= 25) {
+        healthBar.classList.add('low');
+    } else {
+        healthBar.classList.remove('low');
+    }
+}
+
+function addBattleLog(message) {
+    const battleLog = document.getElementById('battle-log');
+    const entry = document.createElement('div');
+    entry.className = 'battle-log-entry';
+    entry.textContent = message;
+    battleLog.appendChild(entry);
+    battleLog.scrollTop = battleLog.scrollHeight;
+}
+
+function showDamageNumber(target, damage, isCrit) {
+    const rect = target.getBoundingClientRect();
+    const damageEl = document.createElement('div');
+    damageEl.className = 'damage-number' + (isCrit ? ' critical' : '');
+    damageEl.textContent = `-${Math.round(damage)}`;
+    damageEl.style.left = rect.left + rect.width / 2 + 'px';
+    damageEl.style.top = rect.top + 'px';
+    document.body.appendChild(damageEl);
+    
+    setTimeout(() => damageEl.remove(), 1000);
+}
+
+function createSlashEffect(target) {
+    const rect = target.getBoundingClientRect();
+    const slash = document.createElement('div');
+    slash.className = 'slash-effect';
+    slash.textContent = '⚔️';
+    slash.style.left = rect.left + rect.width / 2 - 50 + 'px';
+    slash.style.top = rect.top + rect.height / 2 - 50 + 'px';
+    document.body.appendChild(slash);
+    
+    setTimeout(() => slash.remove(), 500);
+}
+
+function showBattleResultScreen(result) {
+    const arena = document.getElementById('battle-arena');
+    const resultDiv = document.createElement('div');
+    resultDiv.className = 'battle-result ' + (result.won ? 'victory' : 'defeat');
+    
+    resultDiv.innerHTML = `
+        <h2>${result.won ? '🏆 VICTORY! 🏆' : '💀 DEFEAT 💀'}</h2>
+        <p style="font-size: 1.3rem; margin: 20px 0;">
             ${result.won ? 
-                'Your strength has proven superior!' : 
-                'Train harder and try again!'}
+                `You have defeated ${result.monster.name}!` : 
+                `${result.monster.name} has bested you in combat.`}
         </p>
+        <div class="battle-rewards">
+            <div class="reward-item">✨ +${result.rewards.xp} XP</div>
+            <div class="reward-item">💰 +${result.rewards.gold} Gold</div>
+        </div>
+        <p style="color: var(--text-secondary); margin: 20px 0;">
+            ${result.won ? 
+                'Your strength grows with each victory!' : 
+                'Learn from this defeat and grow stronger!'}
+        </p>
+        <button class="btn btn-primary" onclick="closeBattleArena()" style="font-size: 1.2rem; padding: 15px 30px;">
+            Continue
+        </button>
     `;
+    
+    arena.appendChild(resultDiv);
+}
 
-    // Scroll to result
-    battleResult.scrollIntoView({ behavior: 'smooth', block: 'center' });
+function closeBattleArena() {
+    const arena = document.getElementById('battle-arena');
+    arena.style.animation = 'battleArenaAppear 0.3s ease-out reverse';
+    setTimeout(() => {
+        arena.style.display = 'none';
+        arena.style.animation = 'battleArenaAppear 0.5s ease-out';
+        // Clean up result screen
+        const resultScreen = arena.querySelector('.battle-result');
+        if (resultScreen) resultScreen.remove();
+        // Reset sprites
+        document.getElementById('hero-sprite').style.opacity = '1';
+        document.getElementById('monster-sprite').style.opacity = '1';
+    }, 300);
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Logout function
+async function logout() {
+    if (!confirm('Are you sure you want to logout?')) return;
+    
+    try {
+        await fetch('/api/logout', { method: 'POST' });
+        window.location.href = '/login';
+    } catch (error) {
+        console.error('Error logging out:', error);
+        window.location.href = '/login';
+    }
 }
 
 async function loadBattleHistory() {
@@ -564,5 +877,156 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Enhanced reward animations
+function showRewardPopup(result) {
+    const popup = document.getElementById('reward-popup');
+    const content = document.getElementById('reward-content');
+    
+    const bonus = result.bonus || {};
+    const isCritical = bonus.is_critical;
+    const isCombo = bonus.is_combo;
+    const multiplier = bonus.total_multiplier || 1;
+    const rareDrop = bonus.rare_drop;
+    
+    let bonusHTML = '';
+    if (isCritical) {
+        bonusHTML += `<div class="reward-bonus-text">💥 CRITICAL HIT! 💥</div>`;
+        bonusHTML += `<div class="reward-multiplier">${bonus.crit_multiplier}x Multiplier!</div>`;
+    }
+    if (isCombo) {
+        bonusHTML += `<div class="reward-bonus-text">🔥 ${bonus.combo_count}x COMBO! 🔥</div>`;
+        bonusHTML += `<div class="reward-multiplier">${bonus.combo_multiplier.toFixed(1)}x Multiplier!</div>`;
+    }
+    if (rareDrop) {
+        bonusHTML += `<div class="reward-bonus-text">🎁 BONUS DROP! +${rareDrop.amount} Gold! 🎁</div>`;
+    }
+    
+    content.innerHTML = `
+        <h2>Quest Complete!</h2>
+        ${bonusHTML}
+        <div class="reward-content">
+            <div>
+                <span class="reward-amount" ${isCritical ? 'class="critical-hit"' : ''}>
+                    +${result.rewards.xp} XP
+                </span>
+                ${result.rewards.base_xp !== result.rewards.xp ? 
+                    `<small>(Base: ${result.rewards.base_xp})</small>` : ''}
+            </div>
+            <div>
+                <span class="reward-amount" ${isCritical ? 'class="critical-hit"' : ''}>
+                    +${result.rewards.gold} Gold
+                </span>
+                ${result.rewards.base_gold !== result.rewards.gold ? 
+                    `<small>(Base: ${result.rewards.base_gold})</small>` : ''}
+            </div>
+        </div>
+        ${multiplier > 1 ? `<p style="margin-top: 20px; font-size: 1.2rem;">Total Multiplier: <strong>${multiplier.toFixed(2)}x</strong></p>` : ''}
+        <button class="btn btn-primary" onclick="closeRewardPopup()" style="margin-top: 20px;">Awesome!</button>
+    `;
+    
+    popup.style.display = 'block';
+    popup.style.animation = 'rewardPopIn 0.5s ease-out forwards';
+    
+    // Create confetti
+    if (isCritical || isCombo) {
+        createConfetti();
+    }
+    
+    // Auto-close after 5 seconds
+    setTimeout(() => {
+        closeRewardPopup();
+    }, 5000);
+}
+
+function closeRewardPopup() {
+    const popup = document.getElementById('reward-popup');
+    popup.style.animation = 'rewardPopIn 0.3s ease-out reverse';
+    setTimeout(() => {
+        popup.style.display = 'none';
+    }, 300);
+}
+
+function showComboBadge(comboCount) {
+    const badge = document.getElementById('combo-badge');
+    const numberEl = document.getElementById('combo-number');
+    
+    numberEl.textContent = comboCount;
+    badge.style.display = 'block';
+    
+    // Reset animation
+    badge.style.animation = 'none';
+    setTimeout(() => {
+        badge.style.animation = 'comboAppear 0.3s ease-out, comboPulse 1s ease-in-out infinite';
+    }, 10);
+    
+    // Hide after 10 minutes (matches combo timeout)
+    setTimeout(() => {
+        badge.style.display = 'none';
+    }, 10 * 60 * 1000);
+}
+
+function showLevelUpCelebration(oldLevel, newLevel) {
+    const overlay = document.getElementById('level-up-overlay');
+    const content = document.getElementById('level-up-content');
+    
+    // Calculate stat increases (based on backend logic)
+    const healthIncrease = 10;
+    const attackIncrease = 3;
+    const defenseIncrease = 2;
+    
+    content.innerHTML = `
+        <h1>🎊 LEVEL UP! 🎊</h1>
+        <p style="font-size: 2rem; margin: 20px 0;">Level ${oldLevel} → Level ${newLevel}</p>
+        <div class="level-up-stats">
+            <div class="stat-increase">
+                <span>❤️ Max Health</span>
+                <span class="increase">+${healthIncrease}</span>
+            </div>
+            <div class="stat-increase">
+                <span>⚔️ Attack</span>
+                <span class="increase">+${attackIncrease}</span>
+            </div>
+            <div class="stat-increase">
+                <span>🛡️ Defense</span>
+                <span class="increase">+${defenseIncrease}</span>
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="closeLevelUpOverlay()" style="margin-top: 30px; font-size: 1.2rem; padding: 15px 40px;">
+            Continue Your Journey!
+        </button>
+    `;
+    
+    overlay.style.display = 'flex';
+    createConfetti(50); // More confetti for level ups!
+}
+
+function closeLevelUpOverlay() {
+    const overlay = document.getElementById('level-up-overlay');
+    overlay.style.animation = 'overlayFadeIn 0.3s ease-out reverse';
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        overlay.style.animation = 'overlayFadeIn 0.3s ease-out';
+    }, 300);
+}
+
+function createConfetti(count = 30) {
+    const colors = ['#fbbf24', '#f59e0b', '#d97706', '#ef4444', '#10b981', '#3b82f6', '#a78bfa'];
+    
+    for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.animationDelay = Math.random() * 0.5 + 's';
+            confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+            
+            document.body.appendChild(confetti);
+            
+            setTimeout(() => confetti.remove(), 3500);
+        }, i * 30);
+    }
 }
 
