@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quest Master - RPG Task Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="game-title">⚔️ Quest Master</h1>
+            <p class="subtitle">Turn Your Tasks Into Epic Quests</p>
+        </header>
+
+        <!-- Character Panel -->
+        <section class="character-panel">
+            <div class="character-card">
+                <div class="character-header">
+                    <h2 id="character-name">Hero</h2>
+                    <span class="level-badge">Level <span id="character-level">1</span></span>
+                </div>
+                
+                <div class="character-stats">
+                    <div class="stat-row">
+                        <div class="stat">
+                            <span class="stat-label">⚔️ Attack</span>
+                            <span class="stat-value" id="character-attack">10</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">🛡️ Defense</span>
+                            <span class="stat-value" id="character-defense">5</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">💰 Gold</span>
+                            <span class="stat-value" id="character-gold">0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="health-bar-container">
+                        <div class="bar-label">
+                            <span>❤️ HP</span>
+                            <span id="character-health-text">100/100</span>
+                        </div>
+                        <div class="bar health-bar">
+                            <div class="bar-fill" id="health-bar-fill" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="xp-bar-container">
+                        <div class="bar-label">
+                            <span>✨ XP</span>
+                            <span id="character-xp-text">0/100</span>
+                        </div>
+                        <div class="bar xp-bar">
+                            <div class="bar-fill" id="xp-bar-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-tab="quests">📜 Quests</button>
+            <button class="tab-btn" data-tab="shop">🏪 Shop</button>
+            <button class="tab-btn" data-tab="inventory">🎒 Inventory</button>
+            <button class="tab-btn" data-tab="battle">⚔️ Battle</button>
+            <button class="tab-btn" data-tab="achievements">🏆 Achievements</button>
+        </nav>
+
+        <!-- Tab Content -->
+        <main class="tab-content">
+            <!-- Quests Tab -->
+            <section id="quests-tab" class="tab-pane active">
+                <div class="section-header">
+                    <h2>Active Quests</h2>
+                    <button class="btn btn-primary" id="new-quest-btn">+ New Quest</button>
+                </div>
+
+                <div id="quest-form" class="quest-form hidden">
+                    <h3>Create New Quest</h3>
+                    <input type="text" id="quest-title" placeholder="Quest Title" required>
+                    <textarea id="quest-description" placeholder="Quest Description (optional)"></textarea>
+                    <select id="quest-difficulty">
+                        <option value="easy">Easy (20 XP, 10 Gold)</option>
+                        <option value="medium" selected>Medium (50 XP, 25 Gold)</option>
+                        <option value="hard">Hard (100 XP, 50 Gold)</option>
+                        <option value="epic">Epic (200 XP, 100 Gold)</option>
+                    </select>
+                    <div class="form-buttons">
+                        <button class="btn btn-primary" id="create-quest-btn">Create Quest</button>
+                        <button class="btn btn-secondary" id="cancel-quest-btn">Cancel</button>
+                    </div>
+                </div>
+
+                <div class="quests-filter">
+                    <button class="filter-btn active" data-filter="active">Active</button>
+                    <button class="filter-btn" data-filter="completed">Completed</button>
+                </div>
+
+                <div id="quests-list" class="quests-list">
+                    <!-- Quests will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Shop Tab -->
+            <section id="shop-tab" class="tab-pane">
+                <div class="section-header">
+                    <h2>Merchant's Shop</h2>
+                    <p class="shop-description">Spend your hard-earned gold on powerful equipment!</p>
+                </div>
+
+                <div id="shop-items" class="shop-grid">
+                    <!-- Shop items will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Inventory Tab -->
+            <section id="inventory-tab" class="tab-pane">
+                <div class="section-header">
+                    <h2>Your Inventory</h2>
+                    <p class="inventory-description">Equip items to boost your stats</p>
+                </div>
+
+                <div id="inventory-items" class="inventory-grid">
+                    <!-- Inventory items will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Battle Tab -->
+            <section id="battle-tab" class="tab-pane">
+                <div class="section-header">
+                    <h2>Monster Arena</h2>
+                    <p class="battle-description">Test your strength against fearsome monsters!</p>
+                </div>
+
+                <div class="battle-area">
+                    <div class="monster-selection">
+                        <h3>Choose Your Opponent</h3>
+                        <div class="monster-grid">
+                            <div class="monster-card" data-monster="Goblin" data-level="1">
+                                <div class="monster-icon">👺</div>
+                                <h4>Goblin</h4>
+                                <p class="monster-level">Level 1</p>
+                            </div>
+                            <div class="monster-card" data-monster="Orc" data-level="3">
+                                <div class="monster-icon">👹</div>
+                                <h4>Orc</h4>
+                                <p class="monster-level">Level 3</p>
+                            </div>
+                            <div class="monster-card" data-monster="Troll" data-level="5">
+                                <div class="monster-icon">🧌</div>
+                                <h4>Troll</h4>
+                                <p class="monster-level">Level 5</p>
+                            </div>
+                            <div class="monster-card" data-monster="Dragon" data-level="10">
+                                <div class="monster-icon">🐉</div>
+                                <h4>Dragon</h4>
+                                <p class="monster-level">Level 10</p>
+                            </div>
+                            <div class="monster-card" data-monster="Demon" data-level="15">
+                                <div class="monster-icon">😈</div>
+                                <h4>Demon</h4>
+                                <p class="monster-level">Level 15</p>
+                            </div>
+                            <div class="monster-card" data-monster="Ancient Dragon" data-level="20">
+                                <div class="monster-icon">🐲</div>
+                                <h4>Ancient Dragon</h4>
+                                <p class="monster-level">Level 20</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="battle-result" class="battle-result hidden">
+                        <!-- Battle results will appear here -->
+                    </div>
+
+                    <div class="battle-history">
+                        <h3>Recent Battles</h3>
+                        <div id="battle-history-list">
+                            <!-- Battle history will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Achievements Tab -->
+            <section id="achievements-tab" class="tab-pane">
+                <div class="section-header">
+                    <h2>Achievements</h2>
+                    <p class="achievements-description">Unlock achievements by accomplishing great feats!</p>
+                </div>
+
+                <div id="achievements-list" class="achievements-grid">
+                    <!-- Achievements will be loaded here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <!-- Achievement Unlock Modal -->
+    <div id="achievement-modal" class="modal hidden">
+        <div class="modal-content achievement-unlock">
+            <h2>🎉 Achievement Unlocked!</h2>
+            <div id="achievement-modal-content"></div>
+            <button class="btn btn-primary" id="achievement-modal-close">Awesome!</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
