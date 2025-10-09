@@ -26,7 +26,12 @@
         <section class="character-panel">
             <div class="character-card">
                 <div class="character-header">
-                    <h2 id="character-name">Hero</h2>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <h2 id="character-name">Hero</h2>
+                        <button onclick="window.location.href='/customize'" class="btn-icon" title="Customize Character" style="background: rgba(217, 119, 6, 0.2); border: 2px solid #d97706; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; transition: all 0.3s ease;">
+                            ⚙️
+                        </button>
+                    </div>
                     <span class="level-badge">Level <span id="character-level">1</span></span>
                 </div>
                 
