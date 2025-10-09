@@ -4,10 +4,12 @@ const API_BASE = '/api';
 
 // State
 let currentCharacter = null;
+let currentUsername = null;
 let currentTab = 'quests';
 let questFilter = 'active';
 let currentTemplateCategory = 'all';
 let previousLevel = 0;
+let currentTimeframe = 'all';
 
 // Initialize app on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,6 +26,12 @@ async function initializeApp() {
     await loadInventory();
     await loadAchievements();
     await loadBattleHistory();
+    
+    // Load leaderboard if tab is visible
+    if (currentTab === 'leaderboard') {
+        await loadLeaderboard();
+        await loadYourRank();
+    }
 }
 
 // Setup event listeners
@@ -835,6 +843,9 @@ function showAchievementUnlock(achievements) {
             <div style="font-size: 4rem; margin-bottom: 10px;">${ach.icon}</div>
             <h3 style="color: var(--gold-color); margin-bottom: 10px;">${escapeHtml(ach.name)}</h3>
             <p style="color: var(--text-secondary);">${escapeHtml(ach.description)}</p>
+            <button class="share-btn" onclick="shareAchievement('${escapeHtml(ach.name)}')" style="margin-top: 15px;">
+                🐦 Share on Twitter
+            </button>
         </div>
     `).join('');
     
@@ -842,6 +853,13 @@ function showAchievementUnlock(achievements) {
     
     // Reload achievements list
     loadAchievements();
+    
+    // Track achievement unlock
+    if (window.trackEvent && window.AnalyticsEvents) {
+        achievements.forEach(ach => {
+            window.AnalyticsEvents.trackAchievementUnlocked(ach.name);
+        });
+    }
 }
 
 function closeAchievementModal() {

@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify, request, session, redirect, u
 from flask_cors import CORS
 from functools import wraps
 import database as db
+import database_social as social
 import secrets
 import os
 from dotenv import load_dotenv
@@ -194,6 +195,9 @@ def complete_quest(quest_id):
     if not result:
         return jsonify({'error': 'Quest not found or already completed'}), 404
     
+    # Increment quest counter for leaderboard
+    social.increment_quest_counter(char['id'])
+    
     # Check for newly unlocked achievements
     newly_unlocked = db.check_and_unlock_achievements(char['id'])
     result['newly_unlocked_achievements'] = newly_unlocked
@@ -288,6 +292,10 @@ def battle_monster():
     monster_level = data.get('monster_level', 1)
     
     result = db.battle_monster(char['id'], monster_name, monster_level)
+    
+    # Increment monster counter if victory
+    if result.get('victory'):
+        social.increment_monster_counter(char['id'])
     
     # Check for achievements
     newly_unlocked = db.check_and_unlock_achievements(char['id'])
@@ -406,6 +414,64 @@ def customize_character():
         return jsonify({'success': True, 'message': 'Character customized successfully'})
     
     return jsonify({'error': 'Failed to update character'}), 400
+
+# Social/Leaderboard endpoints
+@app.route('/api/leaderboard', methods=['GET'])
+def get_leaderboard():
+    """Get leaderboard data"""
+    timeframe = request.args.get('timeframe', 'all')
+    limit = request.args.get('limit', 100, type=int)
+    
+    leaderboard = social.get_leaderboard(timeframe, limit)
+    return jsonify(leaderboard)
+
+@app.route('/api/profile/<username>', methods=['GET'])
+def get_public_profile_api(username):
+    """Get public profile by username"""
+    profile = social.get_public_profile_by_username(username)
+    
+    if not profile:
+        return jsonify({'error': 'Profile not found or private'}), 404
+    
+    return jsonify(profile)
+
+@app.route('/profile/<username>')
+def public_profile_page(username):
+    """Serve public profile page"""
+    return render_template('profile.html', username=username)
+
+@app.route('/api/profile/toggle', methods=['POST'])
+@login_required
+def toggle_profile_visibility():
+    """Toggle public profile visibility"""
+    user_id = session['user_id']
+    char = db.get_character_by_user_id(user_id)
+    
+    if not char:
+        return jsonify({'error': 'Character not found'}), 404
+    
+    data = request.json
+    public = data.get('public', True)
+    
+    result = social.toggle_public_profile(char['id'], public)
+    
+    if result:
+        return jsonify({'success': True, 'public': public})
+    
+    return jsonify({'error': 'Failed to update profile visibility'}), 400
+
+@app.route('/api/my-rank', methods=['GET'])
+@login_required
+def get_my_rank():
+    """Get current user's rank"""
+    user_id = session['user_id']
+    char = db.get_character_by_user_id(user_id)
+    
+    if not char:
+        return jsonify({'error': 'Character not found'}), 404
+    
+    rank = social.get_user_rank(char['id'])
+    return jsonify({'rank': rank})
 
 if __name__ == '__main__':
     print("🎮 Quest Master RPG Server Starting...")

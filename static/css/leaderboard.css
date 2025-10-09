@@ -1,0 +1,332 @@
+/* Leaderboard Styles */
+
+.leaderboard-timeframes {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    justify-content: center;
+}
+
+.timeframe-btn {
+    padding: 10px 25px;
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.timeframe-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--text-primary);
+}
+
+.timeframe-btn.active {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.your-rank-card {
+    background: var(--card-bg);
+    border: 2px solid var(--primary-color);
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.your-rank-card h3 {
+    color: var(--primary-color);
+    font-size: 1.3rem;
+}
+
+.your-rank-display {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: 15px;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.rank-stat {
+    text-align: center;
+}
+
+.rank-stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    display: block;
+}
+
+.rank-stat-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.leaderboard-container {
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.leaderboard-table thead {
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.2), rgba(124, 58, 237, 0.2));
+}
+
+.leaderboard-table th {
+    padding: 15px;
+    text-align: left;
+    color: var(--primary-color);
+    font-weight: bold;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.leaderboard-table th:first-child {
+    text-align: center;
+    width: 80px;
+}
+
+.leaderboard-table th:last-child {
+    width: 100px;
+}
+
+.leaderboard-table td {
+    padding: 15px;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.leaderboard-table tr {
+    transition: all 0.3s ease;
+}
+
+.leaderboard-table tbody tr:hover {
+    background: rgba(217, 119, 6, 0.1);
+}
+
+.leaderboard-table tr.current-user {
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.15), rgba(124, 58, 237, 0.15));
+    border-left: 4px solid var(--primary-color);
+    font-weight: bold;
+}
+
+.leaderboard-table tr.current-user td {
+    color: var(--primary-color);
+}
+
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.rank-badge.gold {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #78350f;
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+.rank-badge.silver {
+    background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+    color: #374151;
+    box-shadow: 0 4px 12px rgba(209, 213, 217, 0.4);
+}
+
+.rank-badge.bronze {
+    background: linear-gradient(135deg, #d97706, #92400e);
+    color: white;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
+}
+
+.rank-badge.normal {
+    background: var(--card-hover);
+    color: var(--text-secondary);
+}
+
+.player-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.player-avatar {
+    font-size: 2rem;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(217, 119, 6, 0.1);
+    border: 2px solid var(--border-color);
+}
+
+.player-details {
+    flex: 1;
+}
+
+.player-name {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 3px;
+}
+
+.player-class {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.view-profile-btn {
+    padding: 8px 16px;
+    background: transparent;
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    color: var(--primary-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.view-profile-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+.profile-settings {
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 15px;
+    padding: 25px;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-container input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-slider {
+    position: relative;
+    width: 60px;
+    height: 30px;
+    background: #334155;
+    border-radius: 30px;
+    transition: all 0.3s ease;
+}
+
+.toggle-slider::after {
+    content: '';
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    left: 2px;
+    top: 2px;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.toggle-container input[type="checkbox"]:checked + .toggle-slider {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
+.toggle-container input[type="checkbox"]:checked + .toggle-slider::after {
+    transform: translateX(30px);
+}
+
+.toggle-label {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Share Button */
+.share-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #1DA1F2, #0d8bd9);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 10px;
+}
+
+.share-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(29, 161, 242, 0.3);
+}
+
+.share-btn.discord {
+    background: linear-gradient(135deg, #5865F2, #4752C4);
+}
+
+.share-btn.discord:hover {
+    box-shadow: 0 8px 20px rgba(88, 101, 242, 0.3);
+}
+
+.share-btn.copy {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.share-btn.copy:hover {
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .leaderboard-table {
+        font-size: 0.9rem;
+    }
+    
+    .leaderboard-table th,
+    .leaderboard-table td {
+        padding: 10px 8px;
+    }
+    
+    .player-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 1.5rem;
+    }
+    
+    .rank-badge {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+    
+    .leaderboard-timeframes {
+        flex-wrap: wrap;
+    }
+    
+    .timeframe-btn {
+        flex: 1;
+        min-width: 100px;
+    }
+}
+

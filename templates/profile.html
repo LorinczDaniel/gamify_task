@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Hero Profile - Quest Master</title>
+    {% include 'analytics.html' %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #f1f5f9;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: transparent;
+            border: 2px solid #d97706;
+            border-radius: 10px;
+            color: #d97706;
+            text-decoration: none;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(217, 119, 6, 0.1);
+            transform: translateX(-5px);
+        }
+
+        .profile-card {
+            background: #16213e;
+            border: 2px solid #334155;
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .profile-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 4px solid #d97706;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 6rem;
+            background: linear-gradient(135deg, rgba(217, 119, 6, 0.2), rgba(124, 58, 237, 0.2));
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            margin: 0 auto 20px;
+        }
+
+        .profile-name {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #d97706;
+            margin-bottom: 5px;
+        }
+
+        .profile-class {
+            font-size: 1.3rem;
+            color: #94a3b8;
+            margin-bottom: 10px;
+        }
+
+        .profile-rank {
+            display: inline-block;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #d97706, #7c3aed);
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .stat-card {
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: #d97706;
+            transform: translateY(-5px);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #d97706;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        .bio-section {
+            margin-top: 40px;
+        }
+
+        .bio-title {
+            font-size: 1.5rem;
+            color: #d97706;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bio-content {
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 15px;
+            padding: 20px;
+            color: #cbd5e1;
+            line-height: 1.8;
+            font-style: italic;
+        }
+
+        .bio-empty {
+            color: #64748b;
+            text-align: center;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #d97706, #7c3aed);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(217, 119, 6, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #d97706;
+            color: #d97706;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(217, 119, 6, 0.1);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .error {
+            text-align: center;
+            padding: 60px 20px;
+            color: #ef4444;
+        }
+
+        .private-profile {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .private-profile-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+        }
+
+        .achievements-preview {
+            margin-top: 40px;
+        }
+
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .achievement-badge {
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .achievement-badge.unlocked {
+            border-color: #10b981;
+        }
+
+        .achievement-badge.locked {
+            opacity: 0.4;
+            filter: grayscale(100%);
+        }
+
+        .achievement-icon {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+
+        .achievement-name {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #cbd5e1;
+        }
+
+        @media (max-width: 768px) {
+            .profile-card {
+                padding: 30px 20px;
+            }
+
+            .profile-avatar {
+                width: 120px;
+                height: 120px;
+                font-size: 5rem;
+            }
+
+            .profile-name {
+                font-size: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-btn">← Back to Quest Master</a>
+
+        <div id="profile-content">
+            <div class="loading">
+                <div style="font-size: 3rem; margin-bottom: 20px;">⏳</div>
+                Loading hero profile...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const username = '{{ username }}';
+        const avatarMapping = {
+            1: '👤', 2: '🧙', 3: '🥷', 4: '🦸',
+            5: '🤴', 6: '👸', 7: '🧝', 8: '🧛'
+        };
+
+        async function loadProfile() {
+            try {
+                const response = await fetch(`/api/profile/${username}`);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        showPrivateProfile();
+                    } else {
+                        showError();
+                    }
+                    return;
+                }
+                
+                const profile = await response.json();
+                displayProfile(profile);
+                
+                // Track profile view
+                if (window.trackEvent) {
+                    window.trackEvent('profile_viewed', {
+                        viewed_user: username
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                showError();
+            }
+        }
+
+        function displayProfile(profile) {
+            const avatar = avatarMapping[profile.avatar_id] || '👤';
+            const classIcon = profile.character_class === 'Warrior' ? '⚔️' :
+                             profile.character_class === 'Mage' ? '🔮' :
+                             profile.character_class === 'Rogue' ? '🗡️' :
+                             profile.character_class === 'Ranger' ? '🏹' : '⚔️';
+            
+            const memberSince = new Date(profile.user_created_at).toLocaleDateString('en-US', {
+                month: 'long',
+                year: 'numeric'
+            });
+            
+            // Calculate rank (would need backend support for accurate rank)
+            const rank = Math.floor(Math.random() * 1000) + 1; // Placeholder
+            
+            document.getElementById('page-title').textContent = `${profile.name}'s Profile - Quest Master`;
+            
+            document.getElementById('profile-content').innerHTML = `
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="profile-avatar" style="border-color: ${getColorCode(profile.color_theme)}">${avatar}</div>
+                        <h1 class="profile-name">${escapeHtml(profile.name)}</h1>
+                        <div class="profile-class">${classIcon} Level ${profile.level} ${profile.character_class || 'Warrior'}</div>
+                        <div class="profile-rank">🏆 Rank #${rank}</div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">⚔️</div>
+                            <span class="stat-value">${profile.attack || 10}</span>
+                            <span class="stat-label">Attack</span>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🛡️</div>
+                            <span class="stat-value">${profile.defense || 5}</span>
+                            <span class="stat-label">Defense</span>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">💰</div>
+                            <span class="stat-value">${profile.gold || 0}</span>
+                            <span class="stat-label">Gold</span>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📜</div>
+                            <span class="stat-value">${profile.completed_quests || 0}</span>
+                            <span class="stat-label">Quests Completed</span>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🐉</div>
+                            <span class="stat-value">${profile.battles_won || 0}</span>
+                            <span class="stat-label">Monsters Defeated</span>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🏆</div>
+                            <span class="stat-value">${profile.achievements_count || 0}</span>
+                            <span class="stat-label">Achievements</span>
+                        </div>
+                    </div>
+
+                    ${profile.bio ? `
+                        <div class="bio-section">
+                            <h2 class="bio-title">📜 Hero's Tale</h2>
+                            <div class="bio-content">
+                                "${escapeHtml(profile.bio)}"
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <div style="text-align: center; margin-top: 30px; padding-top: 30px; border-top: 1px solid #334155; color: #64748b;">
+                        <p>⏰ Adventuring since ${memberSince}</p>
+                    </div>
+
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="shareProfile()">
+                            🐦 Share on Twitter
+                        </button>
+                        <button class="btn btn-secondary" onclick="copyProfileLink()">
+                            📋 Copy Profile Link
+                        </button>
+                        <button class="btn btn-secondary" onclick="window.location.href='/'">
+                            🏠 Home
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showPrivateProfile() {
+            document.getElementById('profile-content').innerHTML = `
+                <div class="profile-card">
+                    <div class="private-profile">
+                        <div class="private-profile-icon">🔒</div>
+                        <h2>This Profile is Private</h2>
+                        <p style="color: #94a3b8; margin-top: 10px;">
+                            This hero has chosen to keep their profile hidden.
+                        </p>
+                        <div style="margin-top: 30px;">
+                            <a href="/" class="btn btn-primary">Return Home</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showError() {
+            document.getElementById('profile-content').innerHTML = `
+                <div class="profile-card">
+                    <div class="error">
+                        <div style="font-size: 5rem; margin-bottom: 20px;">😕</div>
+                        <h2>Profile Not Found</h2>
+                        <p style="color: #94a3b8; margin-top: 10px;">
+                            This hero doesn't exist or has been deleted.
+                        </p>
+                        <div style="margin-top: 30px;">
+                            <a href="/" class="btn btn-primary">Return Home</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getColorCode(theme) {
+            const colors = {
+                'orange': '#d97706',
+                'blue': '#3b82f6',
+                'green': '#10b981',
+                'red': '#ef4444',
+                'purple': '#8b5cf6',
+                'pink': '#ec4899'
+            };
+            return colors[theme] || '#d97706';
+        }
+
+        function shareProfile() {
+            const profileUrl = window.location.href;
+            const text = `Check out my Quest Master hero! 🎮⚔️\n\nLevel up your productivity:\n${profileUrl}`;
+            const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+            window.open(twitterUrl, '_blank', 'width=550,height=420');
+            
+            if (window.trackEvent) {
+                window.trackEvent('profile_shared', {
+                    username: username,
+                    platform: 'twitter'
+                });
+            }
+        }
+
+        function copyProfileLink() {
+            const link = window.location.href;
+            navigator.clipboard.writeText(link).then(() => {
+                alert('Profile link copied to clipboard! 📋');
+                
+                if (window.trackEvent) {
+                    window.trackEvent('profile_link_copied', {
+                        username: username
+                    });
+                }
+            }).catch(() => {
+                alert('Failed to copy link. Please copy manually: ' + link);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load profile on page load
+        loadProfile();
+    </script>
+</body>
+</html>
+
