@@ -185,6 +185,16 @@ def init_db():
         # Columns already exist
         pass
     
+    # Add social/public profile columns
+    try:
+        cursor.execute('ALTER TABLE character ADD COLUMN public_profile BOOLEAN DEFAULT 1')
+        cursor.execute('ALTER TABLE character ADD COLUMN total_quests_completed INTEGER DEFAULT 0')
+        cursor.execute('ALTER TABLE character ADD COLUMN total_monsters_defeated INTEGER DEFAULT 0')
+        conn.commit()
+    except sqlite3.OperationalError:
+        # Columns already exist
+        pass
+    
     # Create default demo user if no users exist
     cursor.execute('SELECT COUNT(*) FROM user')
     if cursor.fetchone()[0] == 0:
