@@ -4,6 +4,10 @@ from functools import wraps
 import database as db
 import secrets
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 # Use environment variable in production, generate random for local dev
