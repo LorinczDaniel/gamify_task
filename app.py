@@ -3,9 +3,11 @@ from flask_cors import CORS
 from functools import wraps
 import database as db
 import secrets
+import os
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(32)  # Generate random secret key for sessions
+# Use environment variable in production, generate random for local dev
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 CORS(app)
 
 # Initialize database on startup
