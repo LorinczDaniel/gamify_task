@@ -30,9 +30,17 @@ def login_required(f):
 
 @app.route('/')
 def index():
-    """Serve the main application page (requires login)"""
+    """Serve the landing page or main app"""
     if 'user_id' not in session:
-        return redirect(url_for('login_page'))
+        # Show landing page to non-logged-in users
+        return render_template('landing.html')
+    # Show main app to logged-in users
+    return render_template('index.html')
+
+@app.route('/app')
+@login_required
+def app_page():
+    """Direct link to main app (requires login)"""
     return render_template('index.html')
 
 @app.route('/login')

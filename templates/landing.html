@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quest Master - Turn Your Tasks Into Epic Quests</title>
+    <meta name="description" content="Transform boring daily tasks into an exciting RPG adventure. Level up your productivity with Quest Master - the gamified task manager.">
+    {% include 'analytics.html' %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #f1f5f9;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Navigation */
+        nav {
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            background: rgba(15, 12, 41, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(217, 119, 6, 0.2);
+            z-index: 1000;
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #d97706, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #d97706, #7c3aed);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(217, 119, 6, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #d97706;
+            border: 2px solid #d97706;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(217, 119, 6, 0.1);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 100px 0;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #d97706, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            color: #94a3b8;
+            margin-bottom: 40px;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            animation: fadeInUp 0.8s ease 0.4s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Features Section */
+        .features {
+            padding: 80px 0;
+            background: rgba(22, 33, 62, 0.5);
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 60px;
+            background: linear-gradient(90deg, #d97706, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .feature-card {
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid #334155;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: #d97706;
+            box-shadow: 0 20px 40px rgba(217, 119, 6, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #d97706;
+        }
+
+        .feature-card p {
+            color: #94a3b8;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 80px 0;
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 60px;
+        }
+
+        .step {
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #d97706, #7c3aed);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0 auto 20px;
+        }
+
+        .step h3 {
+            margin-bottom: 10px;
+            color: #d97706;
+        }
+
+        .step p {
+            color: #94a3b8;
+        }
+
+        /* Screenshot/Demo Section */
+        .demo {
+            padding: 80px 0;
+            background: rgba(22, 33, 62, 0.5);
+            text-align: center;
+        }
+
+        .demo-placeholder {
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid #334155;
+            border-radius: 20px;
+            padding: 80px 40px;
+            margin-top: 40px;
+        }
+
+        .demo-placeholder p {
+            font-size: 3rem;
+            color: #334155;
+        }
+
+        /* Social Proof */
+        .social-proof {
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #d97706, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        /* CTA Section */
+        .cta {
+            padding: 100px 0;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(217, 119, 6, 0.1), rgba(124, 58, 237, 0.1));
+        }
+
+        .cta h2 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .cta p {
+            font-size: 1.3rem;
+            color: #94a3b8;
+            margin-bottom: 40px;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            border-top: 1px solid rgba(217, 119, 6, 0.2);
+        }
+
+        footer p {
+            color: #64748b;
+        }
+
+        footer a {
+            color: #d97706;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.2rem;
+            }
+
+            .hero-cta {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .features-grid,
+            .steps,
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        /* Animations */
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease;
+        }
+
+        .scroll-reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="container">
+            <div class="logo">⚔️ Quest Master</div>
+            <div class="nav-buttons">
+                <a href="/login" class="btn btn-secondary">Login</a>
+                <a href="/register" class="btn btn-primary">Get Started Free</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>⚔️ Turn Tasks Into Epic Quests</h1>
+            <p>Transform boring daily chores into an exciting RPG adventure.<br>Level up your productivity, one quest at a time.</p>
+            <div class="hero-cta">
+                <a href="/register" class="btn btn-primary">Start Your Adventure - It's Free!</a>
+                <a href="/login" class="btn btn-secondary">I Already Have An Account</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">Why Quest Master?</h2>
+            <div class="features-grid">
+                <div class="feature-card scroll-reveal">
+                    <div class="feature-icon">🎮</div>
+                    <h3>Gamified Tasks</h3>
+                    <p>Every completed task earns XP, gold, and levels up your character. Finally, tasks that feel rewarding!</p>
+                </div>
+                <div class="feature-card scroll-reveal">
+                    <div class="feature-icon">⚔️</div>
+                    <h3>RPG Character</h3>
+                    <p>Create and customize your hero. Choose from 4 classes, 8 avatars, and multiple color themes.</p>
+                </div>
+                <div class="feature-card scroll-reveal">
+                    <div class="feature-icon">💰</div>
+                    <h3>Shop & Equipment</h3>
+                    <p>Spend earned gold on weapons, armor, and items. Upgrade your character's stats and abilities.</p>
+                </div>
+                <div class="feature-card scroll-reveal">
+                    <div class="feature-icon">🐉</div>
+                    <h3>Battle Monsters</h3>
+                    <p>Test your productivity skills against monsters. Win battles to earn extra rewards!</p>
+                </div>
+                <div class="feature-card scroll-reveal">
+                    <div class="feature-icon">🏆</div>
+                    <h3>Achievements</h3>
+                    <p>Unlock badges and achievements for completing milestones. Show off your productivity prowess!</p>
+                </div>
+                <div class="feature-card scroll-reveal">
+                    <div class="feature-icon">🔥</div>
+                    <h3>Combos & Critical Hits</h3>
+                    <p>Complete tasks quickly for combo bonuses. Get lucky with critical hits for 2.5x rewards!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <div class="steps">
+                <div class="step scroll-reveal">
+                    <div class="step-number">1</div>
+                    <h3>Create Your Hero</h3>
+                    <p>Sign up and customize your character with classes, avatars, and themes.</p>
+                </div>
+                <div class="step scroll-reveal">
+                    <div class="step-number">2</div>
+                    <h3>Add Quests</h3>
+                    <p>Turn your to-dos into quests. Use quick-add templates or create custom tasks.</p>
+                </div>
+                <div class="step scroll-reveal">
+                    <div class="step-number">3</div>
+                    <h3>Complete & Level Up</h3>
+                    <p>Finish tasks to earn XP and gold. Level up your character and unlock new abilities.</p>
+                </div>
+                <div class="step scroll-reveal">
+                    <div class="step-number">4</div>
+                    <h3>Shop & Battle</h3>
+                    <p>Buy equipment, battle monsters, and unlock achievements. Make productivity fun!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section class="demo">
+        <div class="container">
+            <h2 class="section-title">See It In Action</h2>
+            <div class="demo-placeholder scroll-reveal">
+                <p>🎮</p>
+                <p style="font-size: 1.5rem; color: #94a3b8; margin-top: 20px;">
+                    Your productivity journey starts here.<br>
+                    Transform mundane tasks into epic adventures!
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Proof -->
+    <section class="social-proof">
+        <div class="container">
+            <h2 class="section-title">Join The Adventure</h2>
+            <div class="stats">
+                <div class="stat scroll-reveal">
+                    <div class="stat-number">1000+</div>
+                    <div class="stat-label">Quests Completed</div>
+                </div>
+                <div class="stat scroll-reveal">
+                    <div class="stat-number">100+</div>
+                    <div class="stat-label">Heroes Created</div>
+                </div>
+                <div class="stat scroll-reveal">
+                    <div class="stat-number">500+</div>
+                    <div class="stat-label">Monsters Defeated</div>
+                </div>
+                <div class="stat scroll-reveal">
+                    <div class="stat-number">50+</div>
+                    <div class="stat-label">Achievements Unlocked</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to Transform Your Productivity?</h2>
+            <p>Join thousands of heroes making their daily tasks epic.<br>Start your adventure today - completely free!</p>
+            <a href="/register" class="btn btn-primary" style="padding: 15px 50px; font-size: 1.2rem;">🎮 Create Your Hero Now</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Quest Master. Turn your tasks into epic quests.</p>
+            <p style="margin-top: 10px;">
+                <a href="/login">Login</a> • 
+                <a href="/register">Register</a> • 
+                <a href="https://github.com/LorinczDaniel/gamify_task" target="_blank">GitHub</a>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Scroll reveal animation
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.scroll-reveal').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Track landing page view
+        if (window.trackEvent) {
+            window.trackEvent('landing_page_view', {
+                page_title: 'Landing Page'
+            });
+        }
+
+        // Track CTA clicks
+        document.querySelectorAll('a[href="/register"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.trackEvent) {
+                    window.trackEvent('cta_click', {
+                        button_location: btn.textContent.trim()
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
