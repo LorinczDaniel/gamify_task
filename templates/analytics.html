@@ -1,14 +1,13 @@
-<!-- Google Analytics -->
-<!-- Replace G-XXXXXXXXXX with your actual Measurement ID -->
-{% if config.get('GA_MEASUREMENT_ID') %}
-<script async src="https://www.googletagmanager.com/gtag/js?id={{ config.get('GA_MEASUREMENT_ID') }}"></script>
+<!-- Google tag (gtag.js) -->
+{% set measurement_id = config.get('GA_MEASUREMENT_ID') or 'G-7XBMCRC1YC' %}
+{% if measurement_id %}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ measurement_id }}"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  
-  // Configure with your Measurement ID
-  gtag('config', '{{ config.get('GA_MEASUREMENT_ID') }}', {
+
+  gtag('config', '{{ measurement_id }}', {
     'send_page_view': true,
     'anonymize_ip': true  // GDPR compliance
   });
