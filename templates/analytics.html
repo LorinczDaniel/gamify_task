@@ -1,0 +1,24 @@
+<!-- Google Analytics -->
+<!-- Replace G-XXXXXXXXXX with your actual Measurement ID -->
+{% if config.get('GA_MEASUREMENT_ID') %}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ config.get('GA_MEASUREMENT_ID') }}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  
+  // Configure with your Measurement ID
+  gtag('config', '{{ config.get('GA_MEASUREMENT_ID') }}', {
+    'send_page_view': true,
+    'anonymize_ip': true  // GDPR compliance
+  });
+  
+  // Helper function to track custom events
+  window.trackEvent = function(eventName, eventParams) {
+    if (typeof gtag !== 'undefined') {
+      gtag('event', eventName, eventParams);
+    }
+  };
+</script>
+{% endif %}
+

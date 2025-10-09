@@ -8,6 +8,8 @@ import os
 app = Flask(__name__)
 # Use environment variable in production, generate random for local dev
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+# Google Analytics Measurement ID (set in environment variables)
+app.config['GA_MEASUREMENT_ID'] = os.environ.get('GA_MEASUREMENT_ID', '')
 CORS(app)
 
 # Initialize database on startup
