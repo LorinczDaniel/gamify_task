@@ -39,6 +39,12 @@ def register_page():
     """Serve the register page"""
     return render_template('register.html')
 
+@app.route('/customize')
+@login_required
+def customize_page():
+    """Serve the character customization page"""
+    return render_template('customize.html')
+
 # Auth API endpoints
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -356,6 +362,36 @@ def get_stats():
     
     stats = db.get_statistics(char['id'])
     return jsonify(stats)
+
+# Character customization endpoint
+@app.route('/api/character/customize', methods=['POST'])
+@login_required
+def customize_character():
+    """Update character customization"""
+    user_id = session['user_id']
+    char = db.get_character_by_user_id(user_id)
+    
+    if not char:
+        return jsonify({'error': 'Character not found'}), 404
+    
+    data = request.json
+    character_class = data.get('character_class', 'Warrior')
+    avatar_id = data.get('avatar_id', 1)
+    color_theme = data.get('color_theme', 'orange')
+    bio = data.get('bio', '')
+    
+    result = db.update_character_customization(
+        char['id'], 
+        character_class, 
+        avatar_id, 
+        color_theme, 
+        bio
+    )
+    
+    if result:
+        return jsonify({'success': True, 'message': 'Character customized successfully'})
+    
+    return jsonify({'error': 'Failed to update character'}), 400
 
 if __name__ == '__main__':
     print("🎮 Quest Master RPG Server Starting...")

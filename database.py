@@ -174,6 +174,17 @@ def init_db():
         # Column already exists
         pass
     
+    # Add character customization columns
+    try:
+        cursor.execute('ALTER TABLE character ADD COLUMN character_class TEXT DEFAULT "Warrior"')
+        cursor.execute('ALTER TABLE character ADD COLUMN avatar_id INTEGER DEFAULT 1')
+        cursor.execute('ALTER TABLE character ADD COLUMN color_theme TEXT DEFAULT "orange"')
+        cursor.execute('ALTER TABLE character ADD COLUMN bio TEXT DEFAULT ""')
+        conn.commit()
+    except sqlite3.OperationalError:
+        # Columns already exist
+        pass
+    
     # Create default demo user if no users exist
     cursor.execute('SELECT COUNT(*) FROM user')
     if cursor.fetchone()[0] == 0:
@@ -1003,6 +1014,25 @@ def get_character_by_user_id(user_id: int) -> Optional[Dict[str, Any]]:
         char['xp_to_next_level'] = calculate_xp_for_next_level(char['level'])
         return char
     return None
+
+def update_character_customization(character_id: int, character_class: str, avatar_id: int, color_theme: str, bio: str) -> bool:
+    """Update character customization options"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            UPDATE character
+            SET character_class = ?, avatar_id = ?, color_theme = ?, bio = ?
+            WHERE id = ?
+        ''', (character_class, avatar_id, color_theme, bio, character_id))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error updating character customization: {e}")
+        conn.close()
+        return False
 
 def create_character_for_user(user_id: int, name: str) -> Dict[str, Any]:
     """Create a character for a user"""

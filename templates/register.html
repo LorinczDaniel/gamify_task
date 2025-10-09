@@ -224,8 +224,8 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Registration successful - redirect to game
-                    window.location.href = '/';
+                    // Registration successful - redirect to customization
+                    window.location.href = '/customize';
                 } else {
                     showError(data.error || 'Registration failed');
                 }

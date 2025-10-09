@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quest Master - Customize Character</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #f1f5f9;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .customize-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .game-title {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #d97706, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.2rem;
+        }
+
+        .customize-card {
+            background: #16213e;
+            border: 2px solid #334155;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .section {
+            margin-bottom: 35px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: #d97706;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .preview-section {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 40px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 4px solid var(--theme-color, #d97706);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            background: linear-gradient(135deg, rgba(217, 119, 6, 0.2), rgba(124, 58, 237, 0.2));
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .character-info {
+            text-align: center;
+        }
+
+        .character-name {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--theme-color, #d97706);
+            margin-bottom: 5px;
+        }
+
+        .character-class {
+            font-size: 1.2rem;
+            color: #94a3b8;
+        }
+
+        .class-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+        }
+
+        .class-option {
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .class-option:hover {
+            border-color: #d97706;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(217, 119, 6, 0.3);
+        }
+
+        .class-option.selected {
+            border-color: #d97706;
+            background: linear-gradient(135deg, rgba(217, 119, 6, 0.2), rgba(124, 58, 237, 0.2));
+        }
+
+        .class-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .class-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .class-desc {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 15px;
+        }
+
+        .avatar-option {
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            font-size: 2.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .avatar-option:hover {
+            border-color: #d97706;
+            transform: scale(1.1);
+        }
+
+        .avatar-option.selected {
+            border-color: #d97706;
+            background: linear-gradient(135deg, rgba(217, 119, 6, 0.2), rgba(124, 58, 237, 0.2));
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+        }
+
+        .color-option {
+            height: 60px;
+            border-radius: 15px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+            border-color: white;
+        }
+
+        .color-option.selected {
+            border-color: white;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .color-option.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: white;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            color: #f1f5f9;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #d97706;
+            box-shadow: 0 0 20px rgba(217, 119, 6, 0.3);
+        }
+
+        .hint {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 8px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #d97706, #7c3aed);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(217, 119, 6, 0.4);
+        }
+
+        .btn-secondary {
+            background: #334155;
+            color: #f1f5f9;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.2);
+            border: 2px solid #ef4444;
+            color: #fca5a5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            background: rgba(16, 185, 129, 0.2);
+            border: 2px solid #10b981;
+            color: #6ee7b7;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="customize-header">
+            <h1 class="game-title">⚔️ Quest Master</h1>
+            <p class="subtitle">Customize Your Hero</p>
+        </div>
+
+        <div class="customize-card">
+            <div id="error-message" class="error-message"></div>
+            <div id="success-message" class="success-message"></div>
+
+            <!-- Preview Section -->
+            <div class="preview-section">
+                <div class="avatar-preview" id="avatar-preview">
+                    👤
+                </div>
+                <div class="character-info">
+                    <div class="character-name" id="preview-name">Hero</div>
+                    <div class="character-class" id="preview-class">Warrior</div>
+                </div>
+            </div>
+
+            <form id="customize-form">
+                <!-- Class Selection -->
+                <div class="section">
+                    <h2 class="section-title">
+                        <span>⚔️</span>
+                        <span>Choose Your Class</span>
+                    </h2>
+                    <div class="class-grid">
+                        <div class="class-option selected" data-class="Warrior">
+                            <div class="class-icon">⚔️</div>
+                            <div class="class-name">Warrior</div>
+                            <div class="class-desc">High attack & defense</div>
+                        </div>
+                        <div class="class-option" data-class="Mage">
+                            <div class="class-icon">🔮</div>
+                            <div class="class-name">Mage</div>
+                            <div class="class-desc">Magic & intelligence</div>
+                        </div>
+                        <div class="class-option" data-class="Rogue">
+                            <div class="class-icon">🗡️</div>
+                            <div class="class-name">Rogue</div>
+                            <div class="class-desc">Speed & critical hits</div>
+                        </div>
+                        <div class="class-option" data-class="Ranger">
+                            <div class="class-icon">🏹</div>
+                            <div class="class-name">Ranger</div>
+                            <div class="class-desc">Balanced & versatile</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Avatar Selection -->
+                <div class="section">
+                    <h2 class="section-title">
+                        <span>👤</span>
+                        <span>Choose Your Avatar</span>
+                    </h2>
+                    <div class="avatar-grid">
+                        <div class="avatar-option selected" data-avatar="1">👤</div>
+                        <div class="avatar-option" data-avatar="2">🧙</div>
+                        <div class="avatar-option" data-avatar="3">🥷</div>
+                        <div class="avatar-option" data-avatar="4">🦸</div>
+                        <div class="avatar-option" data-avatar="5">🤴</div>
+                        <div class="avatar-option" data-avatar="6">👸</div>
+                        <div class="avatar-option" data-avatar="7">🧝</div>
+                        <div class="avatar-option" data-avatar="8">🧛</div>
+                    </div>
+                </div>
+
+                <!-- Color Theme -->
+                <div class="section">
+                    <h2 class="section-title">
+                        <span>🎨</span>
+                        <span>Choose Your Color Theme</span>
+                    </h2>
+                    <div class="color-grid">
+                        <div class="color-option selected" data-color="orange" data-color-code="#d97706" style="background: linear-gradient(135deg, #d97706, #7c3aed);"></div>
+                        <div class="color-option" data-color="blue" data-color-code="#3b82f6" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);"></div>
+                        <div class="color-option" data-color="green" data-color-code="#10b981" style="background: linear-gradient(135deg, #10b981, #34d399);"></div>
+                        <div class="color-option" data-color="red" data-color-code="#ef4444" style="background: linear-gradient(135deg, #ef4444, #f97316);"></div>
+                        <div class="color-option" data-color="purple" data-color-code="#8b5cf6" style="background: linear-gradient(135deg, #8b5cf6, #a78bfa);"></div>
+                        <div class="color-option" data-color="pink" data-color-code="#ec4899" style="background: linear-gradient(135deg, #ec4899, #f472b6);"></div>
+                    </div>
+                </div>
+
+                <!-- Character Bio -->
+                <div class="section">
+                    <h2 class="section-title">
+                        <span>📜</span>
+                        <span>Character Backstory (Optional)</span>
+                    </h2>
+                    <textarea id="bio" placeholder="Write your character's story..."></textarea>
+                    <div class="hint">Tell the world about your hero's journey!</div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">Skip for Now</button>
+                    <button type="submit" class="btn btn-primary">💾 Save Customization</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const avatarMapping = {
+            1: '👤', 2: '🧙', 3: '🥷', 4: '🦸',
+            5: '🤴', 6: '👸', 7: '🧝', 8: '🧛'
+        };
+
+        let selectedClass = 'Warrior';
+        let selectedAvatar = 1;
+        let selectedColor = 'orange';
+        let selectedColorCode = '#d97706';
+
+        // Class selection
+        document.querySelectorAll('.class-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.class-option').forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedClass = this.dataset.class;
+                document.getElementById('preview-class').textContent = selectedClass;
+            });
+        });
+
+        // Avatar selection
+        document.querySelectorAll('.avatar-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedAvatar = parseInt(this.dataset.avatar);
+                document.getElementById('avatar-preview').textContent = avatarMapping[selectedAvatar];
+            });
+        });
+
+        // Color selection
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedColor = this.dataset.color;
+                selectedColorCode = this.dataset.colorCode;
+                document.documentElement.style.setProperty('--theme-color', selectedColorCode);
+            });
+        });
+
+        // Form submission
+        document.getElementById('customize-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const errorDiv = document.getElementById('error-message');
+            const successDiv = document.getElementById('success-message');
+            errorDiv.classList.remove('show');
+            successDiv.classList.remove('show');
+
+            const data = {
+                character_class: selectedClass,
+                avatar_id: selectedAvatar,
+                color_theme: selectedColor,
+                bio: document.getElementById('bio').value.trim()
+            };
+
+            try {
+                const response = await fetch('/api/character/customize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    successDiv.textContent = '✨ Character customized successfully!';
+                    successDiv.classList.add('show');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    showError(result.error || 'Failed to save customization');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+            }
+        });
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        // Load existing customization
+        async function loadCustomization() {
+            try {
+                const response = await fetch('/api/character');
+                if (response.ok) {
+                    const char = await response.json();
+                    document.getElementById('preview-name').textContent = char.name;
+                    
+                    if (char.character_class) {
+                        selectedClass = char.character_class;
+                        document.querySelector(`.class-option[data-class="${selectedClass}"]`)?.classList.add('selected');
+                        document.getElementById('preview-class').textContent = selectedClass;
+                    }
+                    
+                    if (char.avatar_id) {
+                        selectedAvatar = char.avatar_id;
+                        document.querySelector(`.avatar-option[data-avatar="${selectedAvatar}"]`)?.classList.add('selected');
+                        document.getElementById('avatar-preview').textContent = avatarMapping[selectedAvatar];
+                    }
+                    
+                    if (char.color_theme) {
+                        selectedColor = char.color_theme;
+                        const colorOption = document.querySelector(`.color-option[data-color="${selectedColor}"]`);
+                        if (colorOption) {
+                            document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                            colorOption.classList.add('selected');
+                            selectedColorCode = colorOption.dataset.colorCode;
+                            document.documentElement.style.setProperty('--theme-color', selectedColorCode);
+                        }
+                    }
+                    
+                    if (char.bio) {
+                        document.getElementById('bio').value = char.bio;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load customization:', error);
+            }
+        }
+
+        loadCustomization();
+    </script>
+</body>
+</html>
+
