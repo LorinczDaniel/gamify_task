@@ -112,10 +112,10 @@ Files to Create:
 - [ ] Fix any mobile bugs
 
 #### Week 4: Retention Features
-- [ ] Daily challenges system
+- [x] Daily challenges system ✅
 - [ ] Streak tracking (consecutive days)
 - [ ] Email notifications
-- [ ] Weekly progress reports
+- [x] Weekly progress reports ✅
 - [ ] Push notifications (PWA)
 
 ### 🟡 MEDIUM PRIORITY (Months 2-3)

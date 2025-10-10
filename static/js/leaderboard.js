@@ -2,7 +2,8 @@
  * Leaderboard and Social Features JavaScript
  */
 
-let currentTimeframe = 'all';
+// Leaderboard state
+let leaderboardTimeframe = 'all';
 
 // Avatar mapping
 const avatarMapping = {
@@ -12,7 +13,7 @@ const avatarMapping = {
 
 // Load leaderboard
 async function loadLeaderboard(timeframe = 'all') {
-    currentTimeframe = timeframe;
+    leaderboardTimeframe = timeframe;
     
     try {
         const response = await fetch(`/api/leaderboard?timeframe=${timeframe}&limit=100`);
@@ -148,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
             timeframeBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             loadLeaderboard(btn.dataset.timeframe);
+            loadYourRank(); // Refresh rank display
         });
     });
     
@@ -178,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     );
                     // Reload leaderboard if now hidden
                     if (!profileToggle.checked) {
-                        loadLeaderboard(currentTimeframe);
+                        loadLeaderboard(leaderboardTimeframe);
                     }
                 } else {
                     showNotification('Failed to update profile visibility', 'error');

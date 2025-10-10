@@ -302,6 +302,157 @@
                 width: 100%;
             }
         }
+
+        /* Equipment Grid */
+        .equipment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .equipment-item {
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .equipment-type {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .equipment-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .equipment-stats {
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+
+        /* Weekly Activity Graph */
+        .activity-graph {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 200px;
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .activity-bar-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+        }
+
+        .activity-bar {
+            width: 60%;
+            min-height: 10px;
+            background: linear-gradient(to top, #d97706, #fbbf24);
+            border-radius: 8px 8px 0 0;
+            position: relative;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 5px;
+        }
+
+        .activity-bar:hover {
+            background: linear-gradient(to top, #f59e0b, #fde047);
+            transform: scaleY(1.05);
+        }
+
+        .activity-value {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .activity-label {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        /* Recent Activity Feed */
+        .activity-feed {
+            margin-top: 15px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .activity-item:hover {
+            border-color: #d97706;
+            transform: translateX(5px);
+        }
+
+        .activity-icon {
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .activity-details {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 5px;
+        }
+
+        .activity-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .difficulty-badge {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .activity-rewards {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+        .activity-time {
+            font-size: 0.85rem;
+            color: #64748b;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -363,8 +514,7 @@
                 year: 'numeric'
             });
             
-            // Calculate rank (would need backend support for accurate rank)
-            const rank = Math.floor(Math.random() * 1000) + 1; // Placeholder
+            const rank = profile.rank || 1;
             
             document.getElementById('page-title').textContent = `${profile.name}'s Profile - Quest Master`;
             
@@ -375,6 +525,7 @@
                         <h1 class="profile-name">${escapeHtml(profile.name)}</h1>
                         <div class="profile-class">${classIcon} Level ${profile.level} ${profile.character_class || 'Warrior'}</div>
                         <div class="profile-rank">🏆 Rank #${rank}</div>
+                        ${profile.current_streak > 0 ? `<div style="margin-top: 10px; color: #10b981; font-weight: bold;">🔥 ${profile.current_streak} Day Streak!</div>` : ''}
                     </div>
 
                     <div class="stats-grid">
@@ -408,7 +559,22 @@
                             <span class="stat-value">${profile.achievements_count || 0}</span>
                             <span class="stat-label">Achievements</span>
                         </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🎯</div>
+                            <span class="stat-value">${profile.daily_challenges_today || 0}/3</span>
+                            <span class="stat-label">Today's Challenges</span>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📊</div>
+                            <span class="stat-value">${profile.daily_challenges_completed || 0}</span>
+                            <span class="stat-label">Total Challenges</span>
+                        </div>
                     </div>
+
+                    ${renderEquippedItems(profile.equipped_items)}
+                    ${renderWeeklyActivity(profile.weekly_activity)}
+                    ${renderRecentActivity(profile.recent_quests, profile.recent_battles)}
+                    ${renderAchievements(profile.achievements)}
 
                     ${profile.bio ? `
                         <div class="bio-section">
@@ -436,6 +602,137 @@
                     </div>
                 </div>
             `;
+        }
+
+        function renderEquippedItems(items) {
+            if (!items || items.length === 0) return '';
+            
+            const rarityColors = {
+                'common': '#9ca3af',
+                'uncommon': '#10b981',
+                'rare': '#3b82f6',
+                'epic': '#a78bfa',
+                'legendary': '#fbbf24'
+            };
+            
+            return `
+                <div class="bio-section">
+                    <h2 class="bio-title">⚔️ Equipped Gear</h2>
+                    <div class="equipment-grid">
+                        ${items.map(item => `
+                            <div class="equipment-item" style="border-color: ${rarityColors[item.rarity] || '#9ca3af'}">
+                                <div class="equipment-type">${item.type.toUpperCase()}</div>
+                                <div class="equipment-name" style="color: ${rarityColors[item.rarity] || '#9ca3af'}">${item.name}</div>
+                                <div class="equipment-stats">
+                                    ${item.attack_bonus > 0 ? `⚔️ +${item.attack_bonus} ` : ''}
+                                    ${item.defense_bonus > 0 ? `🛡️ +${item.defense_bonus} ` : ''}
+                                    ${item.health_bonus > 0 ? `❤️ +${item.health_bonus} ` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderWeeklyActivity(activity) {
+            if (!activity || activity.length === 0) return '';
+            
+            const maxQuests = Math.max(...activity.map(w => w.quests_completed), 1);
+            
+            return `
+                <div class="bio-section">
+                    <h2 class="bio-title">📊 Weekly Activity (Last 4 Weeks)</h2>
+                    <div class="activity-graph">
+                        ${activity.map(week => {
+                            const heightPercent = (week.quests_completed / maxQuests) * 100;
+                            return `
+                                <div class="activity-bar-container">
+                                    <div class="activity-bar" style="height: ${heightPercent}%">
+                                        <span class="activity-value">${week.quests_completed}</span>
+                                    </div>
+                                    <div class="activity-label">${week.week_label}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderRecentActivity(quests, battles) {
+            if ((!quests || quests.length === 0) && (!battles || battles.length === 0)) return '';
+            
+            const difficultyColors = {
+                'easy': '#10b981',
+                'medium': '#3b82f6',
+                'hard': '#ef4444',
+                'epic': '#a78bfa'
+            };
+            
+            return `
+                <div class="bio-section">
+                    <h2 class="bio-title">🎮 Recent Activity</h2>
+                    <div class="activity-feed">
+                        ${quests && quests.length > 0 ? quests.slice(0, 5).map(quest => `
+                            <div class="activity-item">
+                                <span class="activity-icon">📜</span>
+                                <div class="activity-details">
+                                    <div class="activity-title">${escapeHtml(quest.title)}</div>
+                                    <div class="activity-meta">
+                                        <span class="difficulty-badge" style="background: ${difficultyColors[quest.difficulty]}">${quest.difficulty.toUpperCase()}</span>
+                                        <span class="activity-rewards">✨ ${quest.xp_reward} XP 💰 ${quest.gold_reward} Gold</span>
+                                    </div>
+                                </div>
+                                <div class="activity-time">${timeAgo(quest.completed_at)}</div>
+                            </div>
+                        `).join('') : ''}
+                        ${battles && battles.length > 0 ? battles.slice(0, 3).map(battle => `
+                            <div class="activity-item">
+                                <span class="activity-icon">${battle.won ? '⚔️' : '💀'}</span>
+                                <div class="activity-details">
+                                    <div class="activity-title">${battle.won ? 'Defeated' : 'Lost to'} ${battle.monster_name}</div>
+                                    <div class="activity-meta">
+                                        <span class="difficulty-badge" style="background: #6b7280">Level ${battle.monster_level}</span>
+                                        ${battle.won ? `<span class="activity-rewards">✨ ${battle.xp_gained} XP 💰 ${battle.gold_gained} Gold</span>` : ''}
+                                    </div>
+                                </div>
+                                <div class="activity-time">${timeAgo(battle.battled_at)}</div>
+                            </div>
+                        `).join('') : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAchievements(achievements) {
+            if (!achievements || achievements.length === 0) return '';
+            
+            return `
+                <div class="achievements-preview">
+                    <h2 class="bio-title">🏆 Achievements Unlocked (${achievements.length})</h2>
+                    <div class="achievements-grid">
+                        ${achievements.map(ach => `
+                            <div class="achievement-badge unlocked">
+                                <div class="achievement-icon">${ach.icon || '🏆'}</div>
+                                <div class="achievement-name">${escapeHtml(ach.name)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function timeAgo(timestamp) {
+            if (!timestamp) return 'Unknown';
+            const date = new Date(timestamp);
+            const seconds = Math.floor((new Date() - date) / 1000);
+            
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+            return date.toLocaleDateString();
         }
 
         function showPrivateProfile() {

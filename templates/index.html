@@ -76,6 +76,20 @@
             </div>
         </section>
 
+        <!-- Daily Challenges Panel -->
+        <section class="daily-challenges-panel">
+            <div class="section-header" style="margin-bottom: 15px;">
+                <h3>🎯 Daily Challenges</h3>
+                <button id="view-weekly-btn" class="btn btn-small btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">
+                    📊 Weekly Report
+                </button>
+            </div>
+            <div id="challenges-container" class="challenges-grid">
+                <!-- Challenge cards will be loaded here -->
+                <div class="challenge-placeholder">Loading challenges...</div>
+            </div>
+        </section>
+
         <!-- Navigation Tabs -->
         <nav class="nav-tabs">
             <button class="tab-btn active" data-tab="quests">📜 Quests</button>
@@ -359,6 +373,20 @@
             <h2>🎉 Achievement Unlocked!</h2>
             <div id="achievement-modal-content"></div>
             <button class="btn btn-primary" id="achievement-modal-close">Awesome!</button>
+        </div>
+    </div>
+
+    <!-- Weekly Summary Modal -->
+    <div id="weekly-summary-modal" class="modal hidden">
+        <div class="modal-content weekly-summary">
+            <div class="modal-header">
+                <h2>📊 Weekly Progress Report</h2>
+                <button class="modal-close" id="weekly-summary-close">✕</button>
+            </div>
+            <div id="weekly-summary-content">
+                <!-- Content will be loaded dynamically -->
+                <div class="loading">Loading weekly summary...</div>
+            </div>
         </div>
     </div>
 

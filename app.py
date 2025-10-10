@@ -190,7 +190,7 @@ def complete_quest(quest_id):
     if not char:
         return jsonify({'error': 'Character not found'}), 404
     
-    result = db.complete_quest(quest_id, char['id'])
+    result = db.complete_quest(quest_id, char['id'], user_id)
     
     if not result:
         return jsonify({'error': 'Quest not found or already completed'}), 404
@@ -291,10 +291,10 @@ def battle_monster():
     monster_name = data.get('monster_name', 'Goblin')
     monster_level = data.get('monster_level', 1)
     
-    result = db.battle_monster(char['id'], monster_name, monster_level)
+    result = db.battle_monster(char['id'], monster_name, monster_level, user_id)
     
     # Increment monster counter if victory
-    if result.get('victory'):
+    if result.get('won'):
         social.increment_monster_counter(char['id'])
     
     # Check for achievements
@@ -384,6 +384,50 @@ def get_stats():
     
     stats = db.get_statistics(char['id'])
     return jsonify(stats)
+
+# Daily Challenges endpoints
+@app.route('/api/challenges/daily', methods=['GET'])
+@login_required
+def get_daily_challenges_api():
+    """Get today's daily challenges with user progress"""
+    user_id = session['user_id']
+    challenges = db.get_daily_challenges(user_id)
+    return jsonify(challenges)
+
+@app.route('/api/challenges/daily/<int:challenge_id>/claim', methods=['POST'])
+@login_required
+def claim_daily_challenge_api(challenge_id):
+    """Claim rewards for a completed daily challenge"""
+    user_id = session['user_id']
+    char = db.get_character_by_user_id(user_id)
+    
+    if not char:
+        return jsonify({'error': 'Character not found'}), 404
+    
+    result = db.claim_daily_challenge(user_id, challenge_id, char['id'])
+    
+    if 'error' in result:
+        return jsonify(result), 400
+    
+    return jsonify(result)
+
+# Weekly Summary endpoints
+@app.route('/api/stats/weekly', methods=['GET'])
+@login_required
+def get_weekly_summary_api():
+    """Get weekly summary with comparison to last week"""
+    user_id = session['user_id']
+    summary = db.get_weekly_comparison(user_id)
+    return jsonify(summary)
+
+@app.route('/api/stats/weekly/history', methods=['GET'])
+@login_required
+def get_weekly_history_api():
+    """Get past N weeks of summary data"""
+    user_id = session['user_id']
+    weeks = request.args.get('weeks', 4, type=int)
+    history = db.get_weekly_history(user_id, weeks)
+    return jsonify(history)
 
 # Character customization endpoint
 @app.route('/api/character/customize', methods=['POST'])

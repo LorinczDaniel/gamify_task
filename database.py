@@ -132,6 +132,54 @@ def init_db():
         )
     ''')
     
+    # Daily challenges table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS daily_challenge (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            challenge_date DATE NOT NULL,
+            challenge_type TEXT NOT NULL,
+            target_value INTEGER NOT NULL,
+            reward_xp INTEGER NOT NULL,
+            reward_gold INTEGER NOT NULL,
+            description TEXT NOT NULL,
+            icon TEXT NOT NULL,
+            UNIQUE(challenge_date, challenge_type)
+        )
+    ''')
+    
+    # User daily challenge progress
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_daily_challenge (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            challenge_id INTEGER NOT NULL,
+            progress INTEGER DEFAULT 0,
+            completed BOOLEAN DEFAULT 0,
+            claimed BOOLEAN DEFAULT 0,
+            completed_at TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES user(id),
+            FOREIGN KEY (challenge_id) REFERENCES daily_challenge(id),
+            UNIQUE(user_id, challenge_id)
+        )
+    ''')
+    
+    # Weekly stats tracking
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS weekly_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            week_start_date DATE NOT NULL,
+            quests_completed INTEGER DEFAULT 0,
+            xp_earned INTEGER DEFAULT 0,
+            gold_earned INTEGER DEFAULT 0,
+            monsters_defeated INTEGER DEFAULT 0,
+            achievements_unlocked INTEGER DEFAULT 0,
+            daily_logins INTEGER DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES user(id),
+            UNIQUE(user_id, week_start_date)
+        )
+    ''')
+    
     conn.commit()
     
     # Populate initial items if shop is empty
@@ -479,13 +527,20 @@ def get_all_quests(user_id: int, completed: Optional[bool] = None) -> List[Dict[
     
     return [dict(row) for row in rows]
 
-def complete_quest(quest_id: int, character_id: int = 1) -> Dict[str, Any]:
+def complete_quest(quest_id: int, character_id: int = 1, user_id: int = None) -> Dict[str, Any]:
     """Mark quest as completed and reward character with enhanced rewards"""
     quest = get_quest(quest_id)
     if not quest or quest['completed']:
         return None
     
     char = get_character(character_id)
+    
+    print(f"DEBUG: Completing quest {quest_id} for character {character_id}")
+    print(f"DEBUG: Character last_quest_completed = {char.get('last_quest_completed')}")
+    
+    # Get user_id if not provided
+    if user_id is None:
+        user_id = quest.get('user_id')
     
     # Check for combo (completed quest within last 10 minutes)
     combo_count = 0
@@ -503,13 +558,17 @@ def complete_quest(quest_id: int, character_id: int = 1) -> Dict[str, Any]:
                 is_combo = True
                 # Combo multiplier: +10% per combo, max 200% (10 combos)
                 combo_multiplier = min(1.0 + (combo_count * 0.1), 2.0)
+                print(f"🔥 COMBO! {combo_count}x combo detected! Multiplier: {combo_multiplier}x")
             else:
                 combo_count = 1  # Reset combo
                 combo_multiplier = 1.0
-        except (ValueError, TypeError):
+                print(f"⏰ Combo reset - last quest was {time_since_last.total_seconds():.0f} seconds ago")
+        except (ValueError, TypeError) as e:
             combo_count = 1
+            print(f"DEBUG: Exception parsing last_quest_completed: {e}")
     else:
         combo_count = 1
+        print(f"DEBUG: First quest for this character (no last_quest_completed)")
     
     # Critical hit chance: 15% base + 1% per level
     crit_chance = min(0.15 + (char['level'] * 0.01), 0.5)  # Max 50%
@@ -542,16 +601,31 @@ def complete_quest(quest_id: int, character_id: int = 1) -> Dict[str, Any]:
     ''', (quest_id,))
     
     # Update character combo info
+    current_time = datetime.now().isoformat()
     cursor.execute('''
-        UPDATE character SET combo_count = ?, last_quest_completed = CURRENT_TIMESTAMP
+        UPDATE character SET combo_count = ?, last_quest_completed = ?
         WHERE id = ?
-    ''', (combo_count, character_id))
+    ''', (combo_count, current_time, character_id))
     
     conn.commit()
     conn.close()
     
     # Reward character
     char = add_xp_and_gold(character_id, final_xp, final_gold)
+    
+    # Update daily challenge progress
+    if user_id:
+        update_challenge_progress(user_id, 'complete_quests', 1)
+        update_challenge_progress(user_id, 'earn_xp', final_xp)
+        update_challenge_progress(user_id, 'earn_gold', final_gold)
+        
+        # Update combo challenge
+        if combo_count >= 3:
+            update_challenge_progress(user_id, 'combo_master', 1)
+        
+        # Update hard quest challenge
+        if quest['difficulty'] == 'hard':
+            update_challenge_progress(user_id, 'hard_quest', 1)
     
     return {
         'quest': get_quest(quest_id),
@@ -723,9 +797,13 @@ def recalculate_character_stats(character_id: int):
     )
 
 # Battle system
-def battle_monster(character_id: int, monster_name: str, monster_level: int) -> Dict[str, Any]:
+def battle_monster(character_id: int, monster_name: str, monster_level: int, user_id: int = None) -> Dict[str, Any]:
     """Simulate a battle with a monster"""
     char = get_character(character_id)
+    
+    # Get user_id if not provided
+    if user_id is None and char:
+        user_id = char.get('user_id')
     
     # Calculate monster stats
     monster_health = 50 + monster_level * 20
@@ -761,6 +839,12 @@ def battle_monster(character_id: int, monster_name: str, monster_level: int) -> 
     ''', (character_id, monster_name, monster_level, won, xp_gained, gold_gained))
     conn.commit()
     conn.close()
+    
+    # Update daily challenge progress
+    if user_id and won:
+        update_challenge_progress(user_id, 'battle_monsters', 1)
+        update_challenge_progress(user_id, 'earn_xp', xp_gained)
+        update_challenge_progress(user_id, 'earn_gold', gold_gained)
     
     return {
         'won': won,
@@ -1057,3 +1141,388 @@ def create_character_for_user(user_id: int, name: str) -> Dict[str, Any]:
     conn.close()
     
     return get_character_by_user_id(user_id)
+
+# Daily Challenges System
+def generate_daily_challenges(challenge_date: str = None) -> List[Dict[str, Any]]:
+    """Generate 3 random daily challenges for a specific date"""
+    if not challenge_date:
+        challenge_date = datetime.now().strftime('%Y-%m-%d')
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Check if challenges already exist for this date
+    cursor.execute('SELECT COUNT(*) as count FROM daily_challenge WHERE challenge_date = ?', (challenge_date,))
+    if cursor.fetchone()['count'] >= 3:
+        conn.close()
+        return get_challenges_for_date(challenge_date)
+    
+    # Define all possible challenge types
+    challenge_types = [
+        {
+            'type': 'complete_quests',
+            'target': 3,
+            'xp': 50,
+            'gold': 30,
+            'description': 'Complete 3 quests today',
+            'icon': '📝'
+        },
+        {
+            'type': 'earn_xp',
+            'target': 150,
+            'xp': 40,
+            'gold': 25,
+            'description': 'Earn 150 XP today',
+            'icon': '✨'
+        },
+        {
+            'type': 'earn_gold',
+            'target': 100,
+            'xp': 60,
+            'gold': 20,
+            'description': 'Earn 100 Gold today',
+            'icon': '💰'
+        },
+        {
+            'type': 'battle_monsters',
+            'target': 2,
+            'xp': 70,
+            'gold': 40,
+            'description': 'Defeat 2 monsters today',
+            'icon': '⚔️'
+        },
+        {
+            'type': 'combo_master',
+            'target': 3,
+            'xp': 80,
+            'gold': 50,
+            'description': 'Complete a 3x combo',
+            'icon': '🔥'
+        },
+        {
+            'type': 'hard_quest',
+            'target': 1,
+            'xp': 60,
+            'gold': 35,
+            'description': 'Complete 1 hard quest',
+            'icon': '💪'
+        }
+    ]
+    
+    # Randomly select 3 challenges
+    selected = random.sample(challenge_types, 3)
+    
+    # Insert challenges
+    for challenge in selected:
+        cursor.execute('''
+            INSERT INTO daily_challenge (challenge_date, challenge_type, target_value, reward_xp, reward_gold, description, icon)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (challenge_date, challenge['type'], challenge['target'], challenge['xp'], challenge['gold'], challenge['description'], challenge['icon']))
+    
+    conn.commit()
+    conn.close()
+    
+    return get_challenges_for_date(challenge_date)
+
+def get_challenges_for_date(challenge_date: str) -> List[Dict[str, Any]]:
+    """Get all challenges for a specific date"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM daily_challenge WHERE challenge_date = ?', (challenge_date,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def get_daily_challenges(user_id: int) -> List[Dict[str, Any]]:
+    """Get today's challenges with user progress"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    # Ensure challenges exist for today
+    challenges = generate_daily_challenges(today)
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    result = []
+    for challenge in challenges:
+        # Get or create user progress
+        cursor.execute('''
+            SELECT * FROM user_daily_challenge 
+            WHERE user_id = ? AND challenge_id = ?
+        ''', (user_id, challenge['id']))
+        
+        progress_row = cursor.fetchone()
+        
+        if not progress_row:
+            # Create progress entry
+            cursor.execute('''
+                INSERT INTO user_daily_challenge (user_id, challenge_id, progress)
+                VALUES (?, ?, 0)
+            ''', (user_id, challenge['id']))
+            conn.commit()
+            progress = 0
+            completed = False
+            claimed = False
+        else:
+            progress_data = dict(progress_row)
+            progress = progress_data['progress']
+            completed = bool(progress_data['completed'])
+            claimed = bool(progress_data['claimed'])
+        
+        result.append({
+            **challenge,
+            'progress': progress,
+            'completed': completed,
+            'claimed': claimed
+        })
+    
+    conn.close()
+    return result
+
+def update_challenge_progress(user_id: int, challenge_type: str, amount: int = 1) -> List[Dict[str, Any]]:
+    """Update progress for a specific challenge type"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Get today's challenges of this type
+    cursor.execute('''
+        SELECT dc.*, udc.id as progress_id, udc.progress, udc.completed
+        FROM daily_challenge dc
+        LEFT JOIN user_daily_challenge udc ON dc.id = udc.challenge_id AND udc.user_id = ?
+        WHERE dc.challenge_date = ? AND dc.challenge_type = ?
+    ''', (user_id, today, challenge_type))
+    
+    row = cursor.fetchone()
+    
+    if row:
+        challenge = dict(row)
+        if not challenge.get('completed'):
+            new_progress = (challenge.get('progress') or 0) + amount
+            
+            # Update or insert progress
+            if challenge.get('progress_id'):
+                cursor.execute('''
+                    UPDATE user_daily_challenge 
+                    SET progress = ?
+                    WHERE id = ?
+                ''', (new_progress, challenge['progress_id']))
+            else:
+                cursor.execute('''
+                    INSERT INTO user_daily_challenge (user_id, challenge_id, progress)
+                    VALUES (?, ?, ?)
+                ''', (user_id, challenge['id'], new_progress))
+            
+            # Check if completed
+            if new_progress >= challenge['target_value']:
+                progress_id = challenge.get('progress_id') or cursor.lastrowid
+                print(f"DEBUG: Marking challenge {challenge['challenge_type']} as complete (progress_id={progress_id}, progress={new_progress}/{challenge['target_value']})")
+                cursor.execute('''
+                    UPDATE user_daily_challenge 
+                    SET completed = 1, completed_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (progress_id,))
+            
+            conn.commit()
+    
+    conn.close()
+    return get_daily_challenges(user_id)
+
+def claim_daily_challenge(user_id: int, challenge_id: int, character_id: int) -> Dict[str, Any]:
+    """Claim rewards for a completed challenge"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Get challenge and progress
+    cursor.execute('''
+        SELECT dc.*, udc.completed, udc.claimed
+        FROM daily_challenge dc
+        JOIN user_daily_challenge udc ON dc.id = udc.challenge_id
+        WHERE dc.id = ? AND udc.user_id = ?
+    ''', (challenge_id, user_id))
+    
+    row = cursor.fetchone()
+    
+    if not row:
+        conn.close()
+        return {'error': 'Challenge not found'}
+    
+    challenge = dict(row)
+    
+    # Convert to proper boolean (SQLite stores as 0/1)
+    is_completed = bool(challenge.get('completed', 0))
+    is_claimed = bool(challenge.get('claimed', 0))
+    
+    if not is_completed:
+        conn.close()
+        print(f"DEBUG: Challenge {challenge_id} not completed yet. Progress data: {challenge}")
+        return {'error': 'Challenge not completed yet'}
+    
+    if is_claimed:
+        conn.close()
+        return {'error': 'Rewards already claimed'}
+    
+    # Mark as claimed
+    cursor.execute('''
+        UPDATE user_daily_challenge 
+        SET claimed = 1
+        WHERE user_id = ? AND challenge_id = ?
+    ''', (user_id, challenge_id))
+    
+    conn.commit()
+    conn.close()
+    
+    # Award rewards
+    char = add_xp_and_gold(character_id, challenge['reward_xp'], challenge['reward_gold'])
+    
+    return {
+        'success': True,
+        'rewards': {
+            'xp': challenge['reward_xp'],
+            'gold': challenge['reward_gold']
+        },
+        'character': char
+    }
+
+# Weekly Summary System
+def get_week_start_date(offset: int = 0) -> str:
+    """Get the start date (Monday) of the week with optional offset"""
+    today = datetime.now()
+    # Get to Monday of current week
+    monday = today - timedelta(days=today.weekday())
+    # Apply offset (negative for past weeks)
+    week_start = monday - timedelta(weeks=abs(offset)) if offset < 0 else monday + timedelta(weeks=offset)
+    return week_start.strftime('%Y-%m-%d')
+
+def get_weekly_summary(user_id: int, week_offset: int = 0) -> Dict[str, Any]:
+    """Get weekly summary for a user"""
+    week_start = get_week_start_date(week_offset)
+    week_end_dt = datetime.strptime(week_start, '%Y-%m-%d') + timedelta(days=7)
+    week_end = week_end_dt.strftime('%Y-%m-%d')
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Get character
+    cursor.execute('SELECT id FROM character WHERE user_id = ?', (user_id,))
+    char_row = cursor.fetchone()
+    if not char_row:
+        conn.close()
+        return {}
+    
+    character_id = char_row['id']
+    
+    # Quest stats
+    cursor.execute('''
+        SELECT 
+            COUNT(*) as quests_completed,
+            SUM(xp_reward) as xp_earned,
+            SUM(gold_reward) as gold_earned,
+            DATE(completed_at) as completion_date
+        FROM quest 
+        WHERE user_id = ? 
+        AND completed = 1 
+        AND completed_at >= ? 
+        AND completed_at < ?
+        GROUP BY DATE(completed_at)
+        ORDER BY completion_date
+    ''', (user_id, week_start, week_end))
+    
+    daily_stats = cursor.fetchall()
+    
+    total_quests = sum(row['quests_completed'] for row in daily_stats)
+    total_xp = sum(row['xp_earned'] or 0 for row in daily_stats)
+    total_gold = sum(row['gold_earned'] or 0 for row in daily_stats)
+    active_days = len(daily_stats)
+    
+    # Find most productive day
+    most_productive_day = None
+    max_quests = 0
+    for row in daily_stats:
+        if row['quests_completed'] > max_quests:
+            max_quests = row['quests_completed']
+            most_productive_day = row['completion_date']
+    
+    # Battle stats
+    cursor.execute('''
+        SELECT COUNT(*) as count
+        FROM battle 
+        WHERE character_id = ? 
+        AND won = 1 
+        AND battled_at >= ? 
+        AND battled_at < ?
+    ''', (character_id, week_start, week_end))
+    
+    monsters_defeated = cursor.fetchone()['count']
+    
+    # Achievement stats (achievements unlocked this week)
+    cursor.execute('''
+        SELECT COUNT(*) as count
+        FROM achievement 
+        WHERE unlocked = 1 
+        AND unlocked_at >= ? 
+        AND unlocked_at < ?
+    ''', (week_start, week_end))
+    
+    achievements_unlocked = cursor.fetchone()['count']
+    
+    conn.close()
+    
+    return {
+        'week_start': week_start,
+        'week_end': week_end,
+        'quests_completed': total_quests,
+        'xp_earned': total_xp,
+        'gold_earned': total_gold,
+        'monsters_defeated': monsters_defeated,
+        'achievements_unlocked': achievements_unlocked,
+        'active_days': active_days,
+        'most_productive_day': most_productive_day
+    }
+
+def get_weekly_comparison(user_id: int) -> Dict[str, Any]:
+    """Compare current week with last week"""
+    current_week = get_weekly_summary(user_id, 0)
+    last_week = get_weekly_summary(user_id, -1)
+    
+    def calculate_change(current, previous):
+        if previous == 0:
+            return 100 if current > 0 else 0
+        return round(((current - previous) / previous) * 100, 1)
+    
+    return {
+        'current_week': current_week,
+        'last_week': last_week,
+        'comparison': {
+            'quests_completed': {
+                'current': current_week['quests_completed'],
+                'previous': last_week['quests_completed'],
+                'change': calculate_change(current_week['quests_completed'], last_week['quests_completed'])
+            },
+            'xp_earned': {
+                'current': current_week['xp_earned'],
+                'previous': last_week['xp_earned'],
+                'change': calculate_change(current_week['xp_earned'], last_week['xp_earned'])
+            },
+            'gold_earned': {
+                'current': current_week['gold_earned'],
+                'previous': last_week['gold_earned'],
+                'change': calculate_change(current_week['gold_earned'], last_week['gold_earned'])
+            },
+            'monsters_defeated': {
+                'current': current_week['monsters_defeated'],
+                'previous': last_week['monsters_defeated'],
+                'change': calculate_change(current_week['monsters_defeated'], last_week['monsters_defeated'])
+            }
+        }
+    }
+
+def get_weekly_history(user_id: int, weeks: int = 4) -> List[Dict[str, Any]]:
+    """Get past N weeks of summary data"""
+    history = []
+    for i in range(weeks):
+        week_data = get_weekly_summary(user_id, -i)
+        if week_data:
+            history.append(week_data)
+    return history

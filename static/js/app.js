@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Initialize application
 async function initializeApp() {
     await loadCharacter();
+    await loadDailyChallenges();
     await loadTemplates();
     await loadQuests();
     await loadShopItems();
@@ -70,6 +71,10 @@ function setupEventListeners() {
     // Achievement modal
     document.getElementById('achievement-modal-close').addEventListener('click', closeAchievementModal);
     
+    // Weekly summary button and modal
+    document.getElementById('view-weekly-btn').addEventListener('click', showWeeklySummary);
+    document.getElementById('weekly-summary-close').addEventListener('click', closeWeeklySummary);
+    
     // Logout button
     document.getElementById('logout-btn').addEventListener('click', logout);
 }
@@ -98,6 +103,10 @@ function switchTab(tabName) {
     if (tabName === 'inventory') loadInventory();
     if (tabName === 'battle') loadBattleHistory();
     if (tabName === 'achievements') loadAchievements();
+    if (tabName === 'leaderboard') {
+        loadLeaderboard();
+        loadYourRank();
+    }
 }
 
 // Load character data
@@ -362,6 +371,7 @@ async function completeQuest(questId) {
 
             await loadCharacter();
             await loadQuests();
+            await loadDailyChallenges(); // Update challenge progress
         }
     } catch (error) {
         console.error('Error completing quest:', error);
@@ -544,6 +554,7 @@ async function battleMonster(monsterName, monsterLevel) {
 
         await loadCharacter();
         await loadBattleHistory();
+        await loadDailyChallenges(); // Update challenge progress
     } catch (error) {
         console.error('Error in battle:', error);
         showNotification('Error during battle', 'error');
@@ -1046,5 +1057,205 @@ function createConfetti(count = 30) {
             setTimeout(() => confetti.remove(), 3500);
         }, i * 30);
     }
+}
+
+
+// Daily Challenges Functions
+async function loadDailyChallenges() {
+    try {
+        const response = await fetch(`${API_BASE}/challenges/daily`);
+        if (!response.ok) throw new Error('Failed to load challenges');
+        
+        const challenges = await response.json();
+        renderDailyChallenges(challenges);
+    } catch (error) {
+        console.error('Error loading daily challenges:', error);
+        document.getElementById('challenges-container').innerHTML = 
+            '<div class="challenge-placeholder">Failed to load challenges. Please refresh.</div>';
+    }
+}
+
+function renderDailyChallenges(challenges) {
+    const container = document.getElementById('challenges-container');
+    
+    if (!challenges || challenges.length === 0) {
+        container.innerHTML = '<div class="challenge-placeholder">No challenges available today.</div>';
+        return;
+    }
+    
+    container.innerHTML = challenges.map(challenge => {
+        const progress = Math.min(challenge.progress, challenge.target_value);
+        const progressPercent = (progress / challenge.target_value) * 100;
+        const isCompleted = challenge.completed;
+        const isClaimed = challenge.claimed;
+        
+        let statusClass = '';
+        let buttonHtml = '';
+        
+        if (isClaimed) {
+            statusClass = 'challenge-claimed';
+            buttonHtml = '<span class="challenge-checkmark">✓ Claimed</span>';
+        } else if (isCompleted) {
+            statusClass = 'challenge-completed';
+            buttonHtml = `<button class="challenge-claim-btn" onclick="claimDailyChallenge(${challenge.id})">🎁 Claim Rewards</button>`;
+        } else {
+            buttonHtml = '<button class="challenge-claim-btn" disabled>In Progress</button>';
+        }
+        
+        return `
+            <div class="challenge-card ${statusClass}">
+                <span class="challenge-icon">${challenge.icon}</span>
+                <div class="challenge-description">${challenge.description}</div>
+                <div class="challenge-progress-bar">
+                    <div class="challenge-progress-fill" style="width: ${progressPercent}%"></div>
+                    <div class="challenge-progress-text">${progress}/${challenge.target_value}</div>
+                </div>
+                <div class="challenge-rewards">
+                    <div>
+                        <span class="challenge-reward-item">✨ ${challenge.reward_xp} XP</span>
+                        <span class="challenge-reward-item">💰 ${challenge.reward_gold} Gold</span>
+                    </div>
+                    ${buttonHtml}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function claimDailyChallenge(challengeId) {
+    try {
+        const response = await fetch(`${API_BASE}/challenges/daily/${challengeId}/claim`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            showNotification(error.error || 'Failed to claim reward', 'error');
+            return;
+        }
+        
+        const result = await response.json();
+        
+        // Update character
+        currentCharacter = result.character;
+        await loadCharacter();
+        
+        // Show notification
+        showNotification(`Challenge completed! +${result.rewards.xp} XP, +${result.rewards.gold} Gold`, 'success');
+        
+        // Reload challenges
+        await loadDailyChallenges();
+        
+    } catch (error) {
+        console.error('Error claiming challenge:', error);
+        showNotification('Failed to claim reward', 'error');
+    }
+}
+
+
+// Weekly Summary Functions
+async function showWeeklySummary() {
+    const modal = document.getElementById('weekly-summary-modal');
+    const content = document.getElementById('weekly-summary-content');
+    
+    modal.classList.remove('hidden');
+    content.innerHTML = '<div class="loading">Loading weekly summary...</div>';
+    
+    try {
+        const response = await fetch(`${API_BASE}/stats/weekly`);
+        if (!response.ok) throw new Error('Failed to load weekly summary');
+        
+        const data = await response.json();
+        renderWeeklySummary(data);
+    } catch (error) {
+        console.error('Error loading weekly summary:', error);
+        content.innerHTML = '<div class="challenge-placeholder">Failed to load weekly summary. Please try again.</div>';
+    }
+}
+
+function closeWeeklySummary() {
+    document.getElementById('weekly-summary-modal').classList.add('hidden');
+}
+
+function renderWeeklySummary(data) {
+    const content = document.getElementById('weekly-summary-content');
+    const current = data.current_week;
+    const comparison = data.comparison;
+    
+    // Format dates
+    const formatDate = (dateStr) => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+    
+    // Get comparison arrow and color
+    const getComparison = (stat) => {
+        if (!stat || stat.change === 0) return '<span class="stat-comparison neutral">—</span>';
+        if (stat.change > 0) {
+            return `<span class="stat-comparison positive"><span class="comparison-arrow">↑</span> +${stat.change}%</span>`;
+        } else {
+            return `<span class="stat-comparison negative"><span class="comparison-arrow">↓</span> ${stat.change}%</span>`;
+        }
+    };
+    
+    // Generate motivational message
+    const getMotivationalMessage = () => {
+        const quests = current.quests_completed;
+        if (quests >= 20) return '🔥 Amazing week! You\'re on fire!';
+        if (quests >= 10) return '⭐ Great work! Keep up the momentum!';
+        if (quests >= 5) return '💪 Nice progress! You\'re doing great!';
+        if (quests > 0) return '🌟 Good start! Every quest counts!';
+        return '💡 New week, new opportunities! Start your first quest!';
+    };
+    
+    const html = `
+        <div class="week-dates">
+            Week of ${formatDate(current.week_start)} - ${formatDate(current.week_end)}
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-icon">📝</span>
+                <span class="stat-value">${current.quests_completed}</span>
+                <span class="stat-label">Quests Completed</span>
+                ${getComparison(comparison.quests_completed)}
+            </div>
+            
+            <div class="stat-card">
+                <span class="stat-icon">✨</span>
+                <span class="stat-value">${current.xp_earned}</span>
+                <span class="stat-label">XP Earned</span>
+                ${getComparison(comparison.xp_earned)}
+            </div>
+            
+            <div class="stat-card">
+                <span class="stat-icon">💰</span>
+                <span class="stat-value">${current.gold_earned}</span>
+                <span class="stat-label">Gold Earned</span>
+                ${getComparison(comparison.gold_earned)}
+            </div>
+            
+            <div class="stat-card">
+                <span class="stat-icon">⚔️</span>
+                <span class="stat-value">${current.monsters_defeated}</span>
+                <span class="stat-label">Monsters Defeated</span>
+                ${getComparison(comparison.monsters_defeated)}
+            </div>
+        </div>
+        
+        <div class="summary-section">
+            <h3>📊 This Week's Highlights</h3>
+            <p style="color: #d1d5db; margin: 10px 0;">🎯 Active Days: ${current.active_days}/7</p>
+            ${current.most_productive_day ? `<p style="color: #d1d5db; margin: 10px 0;">🌟 Most Productive Day: ${formatDate(current.most_productive_day)}</p>` : ''}
+            ${current.achievements_unlocked > 0 ? `<p style="color: #d1d5db; margin: 10px 0;">🏆 Achievements Unlocked: ${current.achievements_unlocked}</p>` : ''}
+        </div>
+        
+        <div class="motivational-message">
+            ${getMotivationalMessage()}
+        </div>
+    `;
+    
+    content.innerHTML = html;
 }
 

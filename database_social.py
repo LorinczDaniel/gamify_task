@@ -97,30 +97,107 @@ def get_public_profile(user_id: int) -> Optional[Dict[str, Any]]:
     return dict(row)
 
 def get_public_profile_by_username(username: str) -> Optional[Dict[str, Any]]:
-    """Get public profile by username"""
+    """Get enhanced public profile with all stats, achievements, equipment, and activity"""
+    from datetime import datetime
+    
     conn = get_db()
     cursor = conn.cursor()
     
+    # Get basic character and user info
     cursor.execute('''
         SELECT 
             c.*,
             u.username,
-            u.created_at as user_created_at,
-            (SELECT COUNT(*) FROM quest WHERE user_id = u.id AND completed = 1) as completed_quests,
-            (SELECT COUNT(*) FROM battle_history WHERE character_id = c.id AND victory = 1) as battles_won,
-            (SELECT COUNT(*) FROM character_achievement WHERE character_id = c.id) as achievements_count
+            u.created_at as user_created_at
         FROM character c
         JOIN user u ON c.user_id = u.id
         WHERE u.username = ? AND c.public_profile = 1
     ''', (username,))
     
     row = cursor.fetchone()
-    conn.close()
     
     if not row:
+        conn.close()
         return None
     
-    return dict(row)
+    profile = dict(row)
+    user_id = profile['user_id']
+    character_id = profile['id']
+    
+    # Get quest stats
+    cursor.execute('SELECT COUNT(*) FROM quest WHERE user_id = ? AND completed = 1', (user_id,))
+    profile['completed_quests'] = cursor.fetchone()[0]
+    
+    # Get battle stats
+    cursor.execute('SELECT COUNT(*) FROM battle WHERE character_id = ? AND won = 1', (character_id,))
+    profile['battles_won'] = cursor.fetchone()[0]
+    
+    # Get achievements count
+    cursor.execute('SELECT COUNT(*) FROM achievement WHERE unlocked = 1')
+    profile['achievements_count'] = cursor.fetchone()[0]
+    
+    # Get unlocked achievements list
+    cursor.execute('SELECT * FROM achievement WHERE unlocked = 1 ORDER BY unlocked_at DESC LIMIT 12')
+    profile['achievements'] = [dict(row) for row in cursor.fetchall()]
+    
+    # Get equipped items
+    cursor.execute('''
+        SELECT i.name, i.type, i.rarity, i.attack_bonus, i.defense_bonus, i.health_bonus
+        FROM inventory inv
+        JOIN item i ON inv.item_id = i.id
+        WHERE inv.character_id = ? AND inv.equipped = 1
+    ''', (character_id,))
+    profile['equipped_items'] = [dict(row) for row in cursor.fetchall()]
+    
+    # Get recent activity (last 10 completed quests)
+    cursor.execute('''
+        SELECT title, difficulty, xp_reward, gold_reward, completed_at
+        FROM quest
+        WHERE user_id = ? AND completed = 1
+        ORDER BY completed_at DESC
+        LIMIT 10
+    ''', (user_id,))
+    profile['recent_quests'] = [dict(row) for row in cursor.fetchall()]
+    
+    # Get recent battles (last 5)
+    cursor.execute('''
+        SELECT monster_name, monster_level, won, xp_gained, gold_gained, battled_at
+        FROM battle
+        WHERE character_id = ?
+        ORDER BY battled_at DESC
+        LIMIT 5
+    ''', (character_id,))
+    profile['recent_battles'] = [dict(row) for row in cursor.fetchall()]
+    
+    # Get daily challenge stats
+    cursor.execute('''
+        SELECT COUNT(*) as total_completed
+        FROM user_daily_challenge
+        WHERE user_id = ? AND completed = 1
+    ''', (user_id,))
+    profile['daily_challenges_completed'] = cursor.fetchone()[0]
+    
+    # Get today's challenge progress
+    today = datetime.now().strftime('%Y-%m-%d')
+    cursor.execute('''
+        SELECT COUNT(*) as today_completed
+        FROM user_daily_challenge udc
+        JOIN daily_challenge dc ON udc.challenge_id = dc.id
+        WHERE udc.user_id = ? AND udc.completed = 1 AND dc.challenge_date = ?
+    ''', (user_id, today))
+    profile['daily_challenges_today'] = cursor.fetchone()[0]
+    
+    # Get their rank
+    profile['rank'] = get_user_rank(character_id)
+    
+    # Get activity streak (consecutive days with completed quests)
+    profile['current_streak'] = calculate_streak(user_id)
+    
+    # Get weekly stats for graph
+    profile['weekly_activity'] = get_weekly_activity_graph(user_id)
+    
+    conn.close()
+    return profile
 
 def toggle_public_profile(character_id: int, public: bool) -> bool:
     """Toggle public profile visibility"""
@@ -202,4 +279,86 @@ def get_user_rank(character_id: int) -> int:
     conn.close()
     
     return rank
+
+def calculate_streak(user_id: int) -> int:
+    """Calculate consecutive days with completed quests"""
+    from datetime import datetime, timedelta
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Get all distinct dates with completed quests, ordered by date descending
+    cursor.execute('''
+        SELECT DISTINCT DATE(completed_at) as quest_date
+        FROM quest
+        WHERE user_id = ? AND completed = 1
+        ORDER BY quest_date DESC
+    ''', (user_id,))
+    
+    dates = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    
+    if not dates:
+        return 0
+    
+    # Check if there's activity today or yesterday
+    today = datetime.now().date()
+    yesterday = today - timedelta(days=1)
+    
+    # Convert string dates to date objects
+    activity_dates = [datetime.strptime(d, '%Y-%m-%d').date() for d in dates]
+    
+    # Streak is broken if no activity today or yesterday
+    if activity_dates[0] not in [today, yesterday]:
+        return 0
+    
+    # Count consecutive days
+    streak = 1
+    current_date = activity_dates[0]
+    
+    for date in activity_dates[1:]:
+        expected_previous = current_date - timedelta(days=1)
+        if date == expected_previous:
+            streak += 1
+            current_date = date
+        else:
+            break
+    
+    return streak
+
+def get_weekly_activity_graph(user_id: int, weeks: int = 4) -> List[Dict[str, Any]]:
+    """Get quest completion activity for the last N weeks"""
+    from datetime import datetime, timedelta
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    activity = []
+    
+    # Get last N weeks
+    for week_offset in range(weeks):
+        week_start_dt = datetime.now() - timedelta(weeks=week_offset, days=datetime.now().weekday())
+        week_start = week_start_dt.strftime('%Y-%m-%d')
+        week_end = (week_start_dt + timedelta(days=7)).strftime('%Y-%m-%d')
+        
+        # Get quest count for this week
+        cursor.execute('''
+            SELECT COUNT(*) as count
+            FROM quest
+            WHERE user_id = ? AND completed = 1 
+            AND completed_at >= ? AND completed_at < ?
+        ''', (user_id, week_start, week_end))
+        
+        count = cursor.fetchone()[0]
+        
+        activity.append({
+            'week_start': week_start,
+            'week_label': week_start_dt.strftime('%b %d'),
+            'quests_completed': count
+        })
+    
+    conn.close()
+    
+    # Reverse to show oldest to newest
+    return list(reversed(activity))
 
