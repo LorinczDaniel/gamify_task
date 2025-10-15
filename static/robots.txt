@@ -1,0 +1,17 @@
+# Quest Master - Robots.txt
+# Allow all search engines to crawl the site
+
+User-agent: *
+Allow: /
+Allow: /static/
+
+# Block private/admin areas (if any in future)
+Disallow: /api/
+Disallow: /logout
+
+# Sitemap location
+Sitemap: https://rpgtask.up.railway.app/sitemap.xml
+
+# Crawl delay (in seconds) - optional, prevents overloading
+Crawl-delay: 1
+

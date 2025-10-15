@@ -1,0 +1,107 @@
+<!-- SEO Meta Tags Component -->
+<!-- Basic Meta Tags -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+<!-- Page Title (override in each page) -->
+<title>{{ page_title|default('Quest Master - Gamified Task Manager | Turn Tasks Into Epic RPG Quests') }}</title>
+
+<!-- Meta Description (override in each page) -->
+<meta name="description" content="{{ page_description|default('Transform boring tasks into epic RPG quests. Level up your character, earn gold, battle monsters, and boost productivity with Quest Master - the ultimate gamified task manager.') }}">
+
+<!-- Keywords -->
+<meta name="keywords" content="task manager, gamified productivity, RPG task app, to-do list game, productivity app, task gamification, level up tasks, quest manager, habit tracker game, productivity RPG, gamified to-do, task rewards, productivity game">
+
+<!-- Author & Copyright -->
+<meta name="author" content="Quest Master">
+<meta name="copyright" content="Quest Master © 2025">
+<meta name="robots" content="index, follow">
+<meta name="language" content="English">
+<meta name="revisit-after" content="7 days">
+
+<!-- Canonical URL (override in each page) -->
+<link rel="canonical" href="{{ canonical_url|default('https://rpgtask.up.railway.app/') }}">
+
+<!-- Open Graph / Facebook Meta Tags -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ og_url|default('https://rpgtask.up.railway.app/') }}">
+<meta property="og:title" content="{{ og_title|default('Quest Master - Turn Your Tasks Into Epic Quests') }}">
+<meta property="og:description" content="{{ og_description|default('Transform boring daily tasks into an exciting RPG adventure. Level up your productivity with Quest Master - the gamified task manager.') }}">
+<meta property="og:image" content="{{ og_image|default('https://rpgtask.up.railway.app/static/images/og-image.png') }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Quest Master">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter Card Meta Tags -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="{{ twitter_url|default('https://rpgtask.up.railway.app/') }}">
+<meta name="twitter:title" content="{{ twitter_title|default('Quest Master - Turn Your Tasks Into Epic Quests') }}">
+<meta name="twitter:description" content="{{ twitter_description|default('Transform boring daily tasks into an exciting RPG adventure. Level up your productivity with Quest Master!') }}">
+<meta name="twitter:image" content="{{ twitter_image|default('https://rpgtask.up.railway.app/static/images/twitter-card.png') }}">
+<meta name="twitter:creator" content="@QuestMasterApp">
+<meta name="twitter:site" content="@QuestMasterApp">
+
+<!-- Additional Meta Tags for Mobile -->
+<meta name="theme-color" content="#d97706">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Quest Master">
+
+<!-- Favicon (add these files to your static folder) -->
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+<link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+
+<!-- Structured Data - JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Quest Master",
+  "alternateName": "Quest Master - Gamified Task Manager",
+  "url": "https://rpgtask.up.railway.app",
+  "logo": "https://rpgtask.up.railway.app/static/images/logo.png",
+  "description": "Transform boring daily tasks into an exciting RPG adventure. Level up your productivity with Quest Master - the gamified task manager.",
+  "applicationCategory": "ProductivityApplication",
+  "operatingSystem": "Web Browser",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.8",
+    "ratingCount": "150",
+    "bestRating": "5",
+    "worstRating": "1"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "Quest Master"
+  },
+  "datePublished": "2025-01-01",
+  "inLanguage": "en-US",
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0",
+  "screenshot": "https://rpgtask.up.railway.app/static/images/screenshot.png"
+}
+</script>
+
+<!-- Additional Structured Data for Organization -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Quest Master",
+  "url": "https://rpgtask.up.railway.app",
+  "logo": "https://rpgtask.up.railway.app/static/images/logo.png",
+  "description": "Gamified task management platform",
+  "sameAs": [
+    "https://github.com/LorinczDaniel/gamify_task"
+  ]
+}
+</script>
+

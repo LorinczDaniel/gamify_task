@@ -1,11 +1,61 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: http://ogp.me/ns#">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quest Master - Turn Your Tasks Into Epic Quests</title>
-    <meta name="description" content="Transform boring daily tasks into an exciting RPG adventure. Level up your productivity with Quest Master - the gamified task manager.">
+    {% set page_title = "Quest Master - Turn Your Tasks Into Epic Quests | Gamified Task Manager" %}
+    {% set page_description = "Transform boring daily tasks into an exciting RPG adventure. Level up your character, earn gold, battle monsters, and boost productivity with Quest Master - the free gamified task manager." %}
+    {% set canonical_url = "https://rpgtask.up.railway.app/" %}
+    {% set og_url = "https://rpgtask.up.railway.app/" %}
+    {% set og_title = "Quest Master - Turn Your Tasks Into Epic Quests" %}
+    {% set og_description = page_description %}
+    
+    {% include 'seo_meta.html' %}
     {% include 'analytics.html' %}
+    
+    <!-- Landing Page Specific Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Quest Master",
+      "applicationCategory": "ProductivityApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": "Gamified Tasks, RPG Character System, Shop & Equipment, Monster Battles, Achievements, Daily Challenges, Leaderboard, Character Customization"
+    }
+    </script>
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [{
+        "@type": "Question",
+        "name": "What is Quest Master?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Quest Master is a gamified task manager that transforms your daily to-do lists into an exciting RPG adventure. Complete tasks to earn XP, level up your character, earn gold, and battle monsters."
+        }
+      }, {
+        "@type": "Question",
+        "name": "Is Quest Master free?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! Quest Master is completely free to use. Create your hero and start your productivity adventure today."
+        }
+      }, {
+        "@type": "Question",
+        "name": "How does gamification improve productivity?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "By turning tasks into quests and adding RPG elements like leveling up, earning rewards, and unlocking achievements, Quest Master makes completing tasks feel rewarding and fun, naturally boosting motivation and productivity."
+        }
+      }]
+    }
+    </script>
+    
     <style>
         * {
             margin: 0;

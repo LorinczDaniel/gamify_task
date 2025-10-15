@@ -1,9 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: http://ogp.me/ns#">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quest Master - RPG Task Manager</title>
+    {% set page_title = "Quest Master - Your RPG Task Manager Dashboard" %}
+    {% set page_description = "Manage your quests, level up your character, battle monsters, and boost your productivity with Quest Master's gamified task manager." %}
+    {% set canonical_url = "https://rpgtask.up.railway.app/app" %}
+    {% set og_url = "https://rpgtask.up.railway.app/app" %}
+    {% set og_title = "Quest Master - RPG Task Manager" %}
+    {% set og_description = page_description %}
+    
+    {% include 'seo_meta.html' %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/leaderboard.css') }}">
     {% include 'analytics.html' %}

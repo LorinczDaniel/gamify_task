@@ -1,9 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: http://ogp.me/ns#">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quest Master - Login</title>
+    {% set page_title = "Login to Quest Master | Access Your RPG Task Manager" %}
+    {% set page_description = "Login to Quest Master and continue your productivity adventure. Access your RPG character, quests, and achievements." %}
+    {% set canonical_url = "https://rpgtask.up.railway.app/login" %}
+    {% set og_url = "https://rpgtask.up.railway.app/login" %}
+    {% set og_title = "Login to Quest Master" %}
+    {% set og_description = page_description %}
+    
+    {% include 'seo_meta.html' %}
     {% include 'analytics.html' %}
     <style>
         * {

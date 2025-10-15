@@ -1,8 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: http://ogp.me/ns#">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% set page_title = "Hero Profile | Quest Master" %}
+    {% set page_description = "View hero profiles, achievements, and stats in Quest Master's gamified task manager." %}
+    {% set canonical_url = "https://rpgtask.up.railway.app/profile" %}
+    {% set og_url = "https://rpgtask.up.railway.app/profile" %}
+    {% set og_title = "Hero Profile - Quest Master" %}
+    {% set og_description = page_description %}
+    
+    {% include 'seo_meta.html' %}
     <title id="page-title">Hero Profile - Quest Master</title>
     {% include 'analytics.html' %}
     <style>

@@ -457,6 +457,10 @@ def add_xp_and_gold(character_id: int, xp: int, gold: int) -> Dict[str, Any]:
     if not char:
         return None
     
+    old_level = char['level']
+    old_xp = char['xp']
+    old_gold = char['gold']
+    
     new_xp = char['xp'] + xp
     new_gold = char['gold'] + gold
     new_level = char['level']
@@ -479,6 +483,20 @@ def add_xp_and_gold(character_id: int, xp: int, gold: int) -> Dict[str, Any]:
             attack=new_attack,
             defense=new_defense
         )
+        
+        # Log level up to audit trail
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO character_audit_log 
+                (user_id, character_id, event_type, old_level, new_level, old_xp, new_xp, old_gold, new_gold, triggered_by)
+                VALUES ((SELECT user_id FROM character WHERE id = ?), ?, 'LEVEL_UP', ?, ?, ?, ?, ?, ?, 'add_xp_and_gold')
+            ''', (character_id, character_id, old_level, new_level, old_xp, new_xp, old_gold, new_gold))
+            conn.commit()
+            conn.close()
+        except:
+            pass  # Audit table might not exist
     
     return update_character(character_id, xp=new_xp, gold=new_gold)
 
@@ -1133,9 +1151,24 @@ def create_character_for_user(user_id: int, name: str) -> Dict[str, Any]:
     conn = get_db()
     cursor = conn.cursor()
     
+    # Log character creation for audit trail
+    print(f"🆕 CREATING NEW CHARACTER: user_id={user_id}, name={name}")
+    
     cursor.execute('''
         INSERT INTO character (user_id, name) VALUES (?, ?)
     ''', (user_id, name))
+    
+    character_id = cursor.lastrowid
+    
+    # Log to audit table if it exists
+    try:
+        cursor.execute('''
+            INSERT INTO character_audit_log 
+            (user_id, character_id, event_type, new_level, new_xp, new_gold, triggered_by)
+            VALUES (?, ?, 'CHARACTER_CREATED', 1, 0, 0, 'create_character_for_user')
+        ''', (user_id, character_id))
+    except:
+        pass  # Audit table might not exist yet
     
     conn.commit()
     conn.close()

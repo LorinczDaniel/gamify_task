@@ -60,6 +60,19 @@ def customize_page():
     """Serve the character customization page"""
     return render_template('customize.html')
 
+# SEO routes
+@app.route('/robots.txt')
+def robots_txt():
+    """Serve robots.txt for search engine crawlers"""
+    from flask import send_from_directory
+    return send_from_directory('static', 'robots.txt', mimetype='text/plain')
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    """Serve sitemap.xml for search engines"""
+    from flask import send_from_directory
+    return send_from_directory('static', 'sitemap.xml', mimetype='application/xml')
+
 # Auth API endpoints
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -127,6 +140,8 @@ def get_character():
     char = db.get_character_by_user_id(user_id)
     
     if not char:
+        # Log this event for debugging
+        print(f"WARNING: No character found for user_id {user_id} ({session.get('username')}), creating new character")
         # Create default character if doesn't exist
         char = db.create_character_for_user(user_id, session.get('username', 'Hero'))
     
@@ -140,6 +155,8 @@ def get_character_with_stats():
     char = db.get_character_by_user_id(user_id)
     
     if not char:
+        # Log this event for debugging
+        print(f"WARNING: No character found for user_id {user_id} ({session.get('username')}), creating new character")
         char = db.create_character_for_user(user_id, session.get('username', 'Hero'))
     
     stats = db.get_statistics(char['id'])

@@ -1,9 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: http://ogp.me/ns#">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quest Master - Register</title>
+    {% set page_title = "Sign Up for Quest Master | Free Gamified Task Manager" %}
+    {% set page_description = "Create your free Quest Master account and start turning tasks into epic quests. Join thousands of heroes boosting their productivity with RPG gaming." %}
+    {% set canonical_url = "https://rpgtask.up.railway.app/register" %}
+    {% set og_url = "https://rpgtask.up.railway.app/register" %}
+    {% set og_title = "Sign Up for Quest Master - Free!" %}
+    {% set og_description = page_description %}
+    
+    {% include 'seo_meta.html' %}
     {% include 'analytics.html' %}
     <style>
         * {

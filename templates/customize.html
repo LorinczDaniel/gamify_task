@@ -1,9 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: http://ogp.me/ns#">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quest Master - Customize Character</title>
+    {% set page_title = "Customize Your Hero | Quest Master" %}
+    {% set page_description = "Customize your RPG character in Quest Master. Choose your class, avatar, and color theme to personalize your productivity adventure." %}
+    {% set canonical_url = "https://rpgtask.up.railway.app/customize" %}
+    {% set og_url = "https://rpgtask.up.railway.app/customize" %}
+    {% set og_title = "Customize Your Hero - Quest Master" %}
+    {% set og_description = page_description %}
+    
+    {% include 'seo_meta.html' %}
     {% include 'analytics.html' %}
     <style>
         * {
